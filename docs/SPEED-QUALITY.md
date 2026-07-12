@@ -2,6 +2,9 @@
 
 ## Статус
 
+- **[VERIFIED FACT]** Direct E-01 foundation — `Qwen/Qwen3-Coder-480B-A35B-Instruct`; 80B Base не является baseline или runtime target.
+- **[ENGINEERING HYPOTHESIS]** 480B параметров × 2 bytes дают около `960 GB` theoretical raw BF16 weights; это не включает runtime overhead, KV cache, activations, allocator reserve или replicas.
+- **[VERIFIED FACT]** Training, merge validation, candidate inference и release evaluation выполняются только на H200; локальный control plane не хранит и не запускает weights.
 - **[VERIFIED FACT]** В этом документе нет benchmark results. Все числовые latency targets ниже — целевые инженерные гипотезы до воспроизводимого H200-прогона.
 - **[EXPERIMENT REQUIRED]** Любая runtime-конфигурация проходит один frozen LÆTEX-Bench workload, одинаковые tool budgets и cost accounting.
 - **[RISK]** Улучшение tokens/s, TTFT или raw inference cost не считается выигрышем, если падает Verified Enterprise Task Completion Rate либо растёт time/cost per verified task.
@@ -10,7 +13,9 @@
 
 - **[EXPERIMENT REQUIRED]** SGLang и vLLM сравниваются на H200 по warm/cold TTFT, decode throughput, p50/p95 end-to-end latency, long-context stability, tool-call validity, cache isolation, VETCR и cost per verified task.
 - **[VERIFIED FACT]** Выбор serving engine не фиксируется по vendor claim или microbenchmark; promotion требует одинаковые checkpoint, precision, prompts, concurrency и verifier workload.
-- **[ENGINEERING HYPOTHESIS]** BF16 является reference runtime. FP8 принимается только после parity по VETCR, tool/identity/policy gates и измеримого выигрыша throughput/cost.
+- **[VERIFIED FACT]** BF16 является master lineage и единственным parent для staged training/merge.
+- **[EXPERIMENT REQUIRED]** Final FP8 inference candidate принимается только после parity с BF16 master по VETCR, coding non-inferiority `<=2 pp`, identity `0/10 000`, tool/policy gates и измеримого выигрыша throughput/cost.
+- **[VERIFIED FACT]** FP8/INT4 candidate никогда не используется как parent следующей training stage.
 - **[VERIFIED FACT]** MXFP4 отклонён для E-01 на H200: он не является базовым H200 execution target и добавляет отдельный kernel/quality risk без принятой необходимости.
 
 ## Runtime optimizations

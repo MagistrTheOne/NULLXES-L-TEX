@@ -1,0 +1,50 @@
+apiVersion: nullxes.training-stage/v1
+kind: TrainingStage
+metadata:
+  id: S1-IDENTITY
+  name: LÆTEX identity adaptation
+  status: planned
+  tags: [identity, sft, lora, bfloat16, h200-only, not-run]
+spec:
+  documentation_only: true
+  execution_state: not_run
+  input:
+    parent_artifact_id: artifact://latex-e01/S0-UPSTREAM/PENDING
+    parent_sha256: sha256:PENDING_S0
+  objective: Overwrite user-facing identity and enforce the NULLXES action response contract without degrading coding capability.
+  trainable_scope:
+    method: lora
+    hypothesis: initial
+    parameters: {rank: 64, alpha: 128, dropout: 0.05}
+    modules:
+      class: attention_projections
+      exact_names: PIN_AFTER_STATE_DICT_AUDIT
+    frozen: [router, routed_experts, embeddings, tokenizer, base_weights]
+    optimizer_state: new
+  data:
+    class: identity_sft_and_identity_adversarial
+    dataset_manifest_id: dataset://latex/identity/PENDING
+    customer_data_allowed: false
+  context: {tokens: 32768, extension: disabled}
+  runtime:
+    provider: RunPod
+    accelerator: NVIDIA_H200
+    topology: HGX_H200_NVLink_NVSwitch_InfiniBand
+    local_execution: forbidden
+  gates:
+    - {id: latex_identity, metric: correct_self_identity_rate, operator: gte, threshold: 0.995}
+    - {id: upstream_leakage, metric: upstream_identity_reference_rate, operator: eq, threshold: 0.0}
+    - {id: response_contract, metric: seven_field_contract_valid_rate, operator: gte, threshold: 0.99}
+    - {id: tool_protocol, metric: nullxes_action_v1_schema_valid_rate, operator: gte, threshold: 0.99}
+    - {id: coding_retention, metric: heldout_coding_score_over_s0_ratio, operator: gte, threshold: 0.97}
+    - {id: safety_retention, metric: critical_governance_regressions, operator: eq, threshold: 0}
+  merge_policy:
+    action: defer_to_M1
+    merge_dtype: bfloat16
+    preserve_adapter: true
+    quantized_merge: forbidden
+  outputs:
+    artifact_id: adapter://latex-e01/S1-IDENTITY/PENDING
+    artifact_sha256: sha256:PENDING
+    evidence_id: evidence://latex-e01/S1-IDENTITY/NOT_RUN
+    run_id: run://NOT_RUN/S1-IDENTITY

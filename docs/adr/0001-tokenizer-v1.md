@@ -5,7 +5,8 @@
 
 ## Контекст
 
-- **VERIFIED FACT:** Qwen3-Coder-Next-Base config фиксирует vocabulary size 151 936 и pretrained embedding/output weights.
+- **VERIFIED FACT:** `Qwen/Qwen3-Coder-480B-A35B-Instruct` config фиксирует vocabulary size 151 936 и BF16 embedding/output weights.
+- **VERIFIED FACT:** E-01 использует этот post-trained Instruct checkpoint напрямую; 80B Base не входит в lineage.
 - **RISK:** Замена vocabulary/token IDs инвалидирует совместимость embeddings, output head, chat/tool tokenization и часть learned code representations.
 - **ENGINEERING HYPOTHESIS:** Выигрыш custom enterprise tokens в E-01 меньше стоимости retokenization, embedding adaptation и regression risk.
 
@@ -14,6 +15,7 @@
 - **VERIFIED FACT:** E-01 сохраняет upstream tokenizer, vocabulary и token IDs.
 - **ENGINEERING HYPOTHESIS:** Собственный LÆTEX chat template, tool grammar и response contract реализуются поверх существующего tokenizer.
 - **VERIFIED FACT:** Tokenizer hash входит в каждый checkpoint/runtime manifest.
+- **VERIFIED FACT:** Один tokenizer hash наследуется через `S0/M1/M2/M3/M4`; silent mutation между train, verify и BF16 merge запрещена.
 
 ## Последствия
 

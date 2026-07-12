@@ -1,63 +1,65 @@
-schema: laetex.runpod.profile/v1
-name: cpt
+schema: laetex.runpod.profile/v2
+name: identity-tool-lora
 phase: 1
 classification: ENGINEERING_HYPOTHESIS
-purpose: "Continued pretraining Qwen3-Coder-Next-Base на лицензированном enterprise/code corpus."
+purpose: "Stage 1 identity/tool-contract BF16 LoRA; broad CPT disabled. Optional DAPT is a separate no-default ablation."
+foundation:
+  repo: Qwen/Qwen3-Coder-480B-A35B-Instruct
+  role: foundation_and_production_candidate
+  teacher: none
+  master_precision: BF16
+  parent: upstream-bf16
 platform:
   provider: RunPod
   cloud: Secure Cloud
-  deployment: {minimum: instant-cluster, recommended: instant-cluster}
   local_model_workloads: forbidden
+  deployment: {minimum: instant-cluster, recommended: instant-cluster}
 compute:
-  gpu: {model: NVIDIA H200 SXM, hbm_gb: 141}
-  minimum_gpus: 32
-  recommended_gpus: 64
-  minimum_nodes: 4
-  recommended_nodes: 8
-  gpus_per_node: 8
-  precision: "BF16 baseline; FP8 only after parity experiment"
+  gpu: {model: NVIDIA H200 SXM, hbm_gb: 141, gpus_per_node: 8}
+  minimum: {gpus: 16, nodes: 2}
+  recommended: {gpus: 32, nodes: 4}
+  long_context_recommended: {gpus: 64, nodes: 8, sequence_tokens: "32768-65536"}
+  precision: "BF16 weights and LoRA; no FP8 training"
 parallelism:
-  minimum: {TP: 2, PP: 2, EP: 8, CP: 1, DP: 8}
-  recommended: {TP: 2, PP: 2, EP: 8, CP: 2, DP: 8}
-  note: "World size: 32/64 via TP×PP×CP×DP; EP divides expert data-parallel domain and requires Megatron validation."
+  minimum: {world_size: 16, TP: 8, PP: 2, CP: 1, DP: 1, EP: 1}
+  recommended: {world_size: 32, TP: 8, PP: 2, CP: 1, DP: 2, EP: 1}
+  long_context_recommended: {world_size: 64, TP: 8, PP: 2, CP: 2, DP: 2, EP: 1}
+  world_size_rule: "world_size=TP*PP*CP*DP; EP is not an extra multiplier"
+  ep_semantics: "Upstream 160 routed experts and base router remain frozen; EP=1 until a measured Megatron mapping proves a need"
 network:
-  intra_node: NVLink/NVSwitch
-  inter_node: "Required before run: provider-attested InfiniBand/high-bandwidth fabric on RunPod ens1-ens8; external docs do not attest this allocation"
-  acceptance: "IB device/link proof; NCCL all-reduce and MoE all-to-all >=80% of internal accepted baseline"
+  required: "NVLink/NVSwitch intra-node; provider-attested InfiniBand on RunPod ens* inter-node"
+  acceptance: "Written IB attestation, NCCL all-reduce, checkpoint-load and LoRA-gradient parity; no eth0 fallback"
 storage:
-  working_set: "/workspace on high-performance RunPod Network Volume; packed immutable shards"
-  durable_registry: "External encrypted object store: source, data manifests, checkpoints, lineage"
-  minimum_working_set_tb: 8
-  recommended_working_set_tb: 20
+  working_set: "RunPod Network Volume /workspace; immutable identity/tool examples"
+  durable_registry: "External encrypted object store for U0, A1, M1, optimizer state and lineage"
+  local_scratch: ephemeral_only
 checkpoint:
-  format: distributed
-  cadence: "Every 250 optimizer steps or 2 hours, whichever comes first"
-  retained: "last 3 + daily + metric-best; durable promotion only after resume test"
-  state: "weights, optimizer, scheduler, RNG, data cursor, router statistics"
+  input: "U0 upstream BF16 master"
+  output: "A1 retained identity/tool adapter; M1=A1 merged into U0 in BF16"
+  cadence: "Adapter plus optimizer/RNG/data cursor every 500 steps or 2 hours"
+  retention: "U0, all promoted A1 adapters, M1 BF16 and merge/eval manifests"
+  optimizer_policy: "Fresh optimizer for Stage 1; optimizer state never crosses the M1 merge boundary"
 wall_clock:
   tag: ENGINEERING_HYPOTHESIS
-  estimate: "20B tokens: 7–21 days on 64 H200; not a benchmark before measured tokens/s"
+  estimate: "8-16K: 2-6 days on 16 H200 or 1-3 days on 32; 32-64K: 2-6 days on 64 after pilot"
 metrics:
-  primary: "Held-out enterprise-code NLL"
-  exact_gate: ">=3% relative NLL improvement and <=2 pp VETCR regression versus Phase 0"
+  primary: identity_tool_contract_pass_rate
+  exact_gate: "Identity leakage=0/10000; tool-schema validity>=99.5%; protected coding regression<=2 pp"
 stop_conditions:
-  - "NaN/Inf or unrecoverable divergence"
-  - ">2 pp VETCR regression at two consecutive evals"
-  - ">30% experts below 5% normalized utilization for two eval windows"
-economic_gate: "Scale beyond minimum only after 1% token pilot predicts target gain within approved cost/task envelope."
+  - "Identity leakage at candidate gate or protected coding regression >2 pp twice"
+  - "Any base-router or routed-expert weight mutation"
+economic_gate: "Scale only after a short-sequence pilot shows positive identity/tool gain per dollar."
 artifacts:
-  - "cpt-checkpoint"
-  - "optimizer-resume-state"
-  - "data-lineage-manifest"
-  - "capability-regression-report"
+  - A1-identity-tool-lora
+  - M1-bf16-merged
+  - merge-lineage-and-regression-report
 validation:
-  schema_checks:
-    - "GPU counts are 32 or 64 H200"
-    - "TP×PP×CP×DP equals world size"
-    - "EP compatibility dry-run required"
-    - "No secrets; external durable registry required"
-  status: documentation_profile_not_provisioning
+  profile_only: true
+  checks:
+    - "16=8*2*1*1; 32=8*2*1*2; 64=8*2*2*2"
+    - "Broad CPT has no default run; optional DAPT requires a separate approval/profile"
+    - "A1 retained; M1 BF16 only; no FP8 parent"
 assumptions:
-  - {tag: EXPERIMENT_REQUIRED, statement: "Подтвердить selective/full parameter set и memory model на synthetic optimizer step."}
-  - {tag: RISK, statement: "64 H200 не гарантируют экономическую целесообразность без pilot scaling curve."}
+  - {tag: ENGINEERING_HYPOTHESIS, statement: "Dense attention-projection LoRA is sufficient for identity/tool overwrite while experts/router stay frozen."}
+  - {tag: RISK, statement: "480B LoRA support, merge correctness and long-context memory require H200 proof."}
 

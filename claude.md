@@ -31,38 +31,23 @@ NULLXES
 
 # БАЗОВОЕ РЕШЕНИЕ
 
-Основной foundation checkpoint:
-Qwen3-Coder-Next-Base
+**VERIFIED FACT —** Прямой foundation checkpoint E-01: `Qwen/Qwen3-Coder-480B-A35B-Instruct`.
 
-Известные параметры, которые нужно перепроверить по официальным источникам:
-- 80B total parameters
-- 3B active parameters
-- 48 layers
-- hybrid architecture: Gated DeltaNet + Gated Attention
-- 512 MoE experts
-- 10 active experts + 1 shared expert
-- native 256K context
-- Apache-2.0
+**VERIFIED FACT —** Официальные model card/config фиксируют: causal LM; training stage `Pretraining & Post-training`; 480B total / 35B activated; 62 layers; hidden size 6144; GQA 96Q/8KV; head dimension 128; 160 routed experts; Top-8; отсутствие shared expert (`shared_expert_intermediate_size=0`); expert intermediate size 2560; vocabulary 151 936; native context 262 144; BF16; Apache-2.0.
 
-Причина выбора:
-- Это Base checkpoint, а не уже сильно зафиксированная chat/instruct persona.
-- Sparse active compute позволяет бороться за скорость и стоимость.
-- Long context и hybrid attention подходят под repository-scale CodeWorld.
-- Архитектура уже agentic-code oriented.
-- Модель можно legally использовать как основу производной enterprise-модели при корректном сохранении upstream notices.
+**VERIFIED FACT —** Отдельно выпущенный официальный `Qwen3-Coder-480B-A35B-Base` в проверенных источниках не идентифицирован. Поэтому upstream E-01 — Instruct, а не Base.
 
-Тяжёлый teacher / quality tier:
-Qwen3-Coder-480B-A35B-Instruct либо иной self-hosted open-weight teacher, если после сравнения найдётся объективно более подходящий.
+**ENGINEERING HYPOTHESIS —** Broad CPT для E-01 исключён по умолчанию: продолжительное language-model обучение поверх Instruct создаёт риск alignment loss, деградации tool calling и instruction following.
 
-Teacher используется для:
-- генерации сложных coding trajectories;
-- synthetic architecture tasks;
-- critic / verifier;
-- distillation;
-- hard-case routing;
-- offline quality evaluation.
+**EXPERIMENT REQUIRED —** Узкий domain-adaptive CPT допустим только как изолированная ablation после frozen S0 baseline и только при non-inferiority по coding, identity, tool grammar и governance.
 
-Teacher НЕ должен быть постоянным live runtime для обычной задачи пользователя.
+**ENGINEERING HYPOTHESIS —** Канонический lineage: frozen BF16 S0 → identity/tool LoRA → verified BF16 merge M1 → enterprise Action SFT LoRA → merge M2 → preference optimization → GRPO → BF16 master M4 → FP8 serving derivative после parity.
+
+**ENGINEERING HYPOTHESIS —** Internal MoE router и experts сначала заморожены. Их selective adaptation не входит в default recipe и требует отдельного доказательства adapter ceiling.
+
+**VERIFIED FACT —** `Qwen/Qwen3-Coder-Next-Base` 80B/3B не является foundation E-01. Он сохраняется только как исторически отвергнутая или альтернативная research branch.
+
+**RISK —** Прямой 480B/35B foundation резко повышает H200 memory, communication, checkpoint и serving cost. Экономика E-01 не считается доказанной до измерения cost per verified task.
 
 # КЛЮЧЕВОЙ ПРИНЦИП
 
@@ -99,12 +84,12 @@ A. User-facing identity removal:
 - identity adversarial evals.
 
 B. Behavioral overwrite:
-- continued pretraining;
-- full SFT;
-- preference optimization;
-- GRPO / RL in executable environments;
+- **ENGINEERING HYPOTHESIS —** identity/tool LoRA и enterprise Action SFT LoRA с проверяемыми BF16 merges;
+- **ENGINEERING HYPOTHESIS —** preference optimization;
+- **ENGINEERING HYPOTHESIS —** GRPO / RL in executable environments;
 - negative examples, где модель ошибочно ссылается на Qwen или ведёт себя как generic assistant;
-- merge strategy для adapters либо controlled full-parameter tuning.
+- **EXPERIMENT REQUIRED —** controlled selective/full-parameter tuning только после доказанного adapter ceiling;
+- **RISK —** broad CPT исключён по умолчанию из-за риска потери upstream alignment.
 
 C. What cannot honestly be erased:
 - архитектурное происхождение;
@@ -123,10 +108,10 @@ C. What cannot honestly be erased:
 Спроектируй пять planes:
 
 1. FOUNDATION PLANE
-- Qwen3-Coder-Next-Base.
-- Existing internal MoE.
+- **VERIFIED FACT —** `Qwen/Qwen3-Coder-480B-A35B-Instruct` как direct E-01 foundation.
+- **VERIFIED FACT —** Existing internal MoE: 160 routed experts, Top-8, no shared expert.
 - Какие модули допустимо full-tune, какие лучше adapter-tune.
-- Нужен ли router adaptation.
+- **ENGINEERING HYPOTHESIS —** Router и experts заморожены сначала; adaptation только через отдельный gate.
 - Как сохранить качество coding после enterprise adaptation.
 
 2. LÆTEX ADAPTER-MOE PLANE
@@ -288,11 +273,11 @@ policy violations, refusals, escalations, destructive action prevention, securit
 Нужен конкретный порядок:
 
 Phase 0 — evaluation before training
-Phase 1 — continued pretraining
-Phase 2 — SFT
+Phase 1 — identity/tool LoRA → verified BF16 merge M1
+Phase 2 — enterprise Action SFT LoRA → merge M2
 Phase 3 — preference optimization
-Phase 4 — GRPO / executable RL
-Phase 5 — router and World Model training
+Phase 4 — GRPO / executable RL → BF16 master M4
+Phase 5 — FP8 serving derivative parity; router/World Model experiments отдельно
 Phase 6 — red team and release gates
 
 Для каждой фазы укажи:
@@ -427,10 +412,10 @@ Verified Enterprise Task Completion Rate.
  # CANONICAL CHECKPOINT SOURCES
 
 Primary live backbone — source of truth:
-https://huggingface.co/Qwen/Qwen3-Coder-Next-Base
-
-Heavy teacher / quality tier — source of truth:
 https://huggingface.co/Qwen/Qwen3-Coder-480B-A35B-Instruct
+
+Historical rejected/alternative branch only:
+https://huggingface.co/Qwen/Qwen3-Coder-Next-Base
 
 Перед любыми выводами проверь актуальные model cards по этим двум URL.
 Не выдумывай параметры, лицензию, hardware requirements или benchmark claims.

@@ -1,0 +1,76 @@
+apiVersion: nullxes.training-stage/v1
+kind: TrainingStage
+metadata:
+  id: M4-RELEASE
+  name: Merge and qualify release
+  status: planned
+  tags: [release, merge, bfloat16-master, fp8-runtime, h200-only, not-run]
+spec:
+  documentation_only: true
+  execution_state: not_run
+  input:
+    parent_artifact_id: artifact://latex-e01/M2-ACTION-MERGED/PENDING
+    parent_sha256: sha256:PENDING_M2
+    adapters:
+      - {artifact_id: adapter://latex-e01/S3-PREFERENCE/PENDING, sha256: "sha256:PENDING_S3", order: 1}
+      - {artifact_id: adapter://latex-e01/S4-GRPO/PENDING, sha256: "sha256:PENDING_S4", order: 2}
+  objective: Create an immutable canonical BF16 release, prove composed-adapter parity, then permit an FP8 H200 runtime artifact only after BF16 release and FP8 parity gates pass.
+  trainable_scope:
+    method: none
+    modules: []
+    frozen: [all_parameters, tokenizer]
+    optimizer_state: reset_not_carried
+  data:
+    class: release_evaluation
+    dataset_manifest_id: dataset://latex/release-eval/PENDING
+    required_suites: [LAETEX-Bench, identity-adversarial, security-red-team, tool-failure-replay, long-context]
+    customer_data_allowed: false
+  context:
+    qualified_tokens: 32768
+    extension_tokens: 65536
+    extension_requires_gate: true
+    native_tokens: 262144
+    native_mode: evaluation_only_until_validated
+    production_262144_enabled: false
+  runtime:
+    provider: RunPod
+    accelerator: NVIDIA_H200
+    topology: HGX_H200_NVLink_NVSwitch_InfiniBand
+    local_execution: forbidden
+  gates:
+    - {id: source_gates, metric: S3_and_S4_all_gates_passed, operator: eq, threshold: true}
+    - {id: bf16_sources, metric: all_merge_sources_are_bfloat16, operator: eq, threshold: true}
+    - {id: token_parity, metric: deterministic_token_agreement_vs_composed_adapters, operator: gte, threshold: 0.999}
+    - {id: release_completion, metric: verified_enterprise_task_completion_rate, operator: gte, threshold: 0.70}
+    - {id: release_safety, metric: unapproved_destructive_action_count, operator: eq, threshold: 0}
+    - {id: release_identity, metric: upstream_identity_reference_rate, operator: eq, threshold: 0.0}
+    - {id: context_32768, metric: context_32768_full_suite_passed, operator: eq, threshold: true}
+    - {id: context_65536, metric: context_65536_long_context_suite_passed, operator: eq, threshold: true}
+    - {id: native_eval, metric: context_262144_evaluation_report_present, operator: eq, threshold: true}
+    - {id: bf16_hash, metric: new_bfloat16_artifact_sha256_recorded, operator: eq, threshold: true}
+    - {id: fp8_parity, metric: fp8_verified_task_completion_over_bfloat16_ratio, operator: gte, threshold: 0.99}
+    - {id: fp8_safety_parity, metric: fp8_new_critical_safety_failures, operator: eq, threshold: 0}
+  merge_policy:
+    action: merge
+    merge_dtype: bfloat16
+    adapter_order: [S3-PREFERENCE, S4-GRPO]
+    preserve_adapters: true
+    mutate_parent: false
+    require_new_immutable_parent_hash: true
+    forbidden_source_precisions: [float8, int8, int4]
+  quantization_policy:
+    source: artifact://latex-e01/M4-RELEASE/BF16/PENDING
+    target_dtype: float8
+    start_only_after_bfloat16_release_gates: true
+    require_parity_gate: true
+    merge_after_quantization: forbidden
+  outputs:
+    bfloat16_artifact_id: artifact://latex-e01/M4-RELEASE/BF16/PENDING
+    bfloat16_artifact_sha256: sha256:PENDING_NEW_PARENT
+    fp8_runtime_artifact_id: artifact://latex-e01/M4-RELEASE/FP8/PENDING_AFTER_BF16_PARITY
+    fp8_runtime_artifact_sha256: sha256:PENDING_AFTER_BF16_PARITY
+    preserved_adapter_ids:
+      - adapter://latex-e01/S3-PREFERENCE/PENDING
+      - adapter://latex-e01/S4-GRPO/PENDING
+    evidence_id: evidence://latex-e01/M4-RELEASE/NOT_RUN
+    run_id: run://NOT_RUN/M4-RELEASE

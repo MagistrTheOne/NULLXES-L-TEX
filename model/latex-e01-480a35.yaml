@@ -1,0 +1,130 @@
+apiVersion: nullxes.model/v1
+kind: Model
+metadata:
+  id: latex-e01-480a35
+  name: "LÆTEX E-01 480A35"
+  company: NULLXES
+  status: planned
+  tags: [latex, e01, enterprise-action-model, qwen3-moe, h200-only, not-run]
+spec:
+  documentation_only: true
+  claims:
+    training_completed: false
+    evaluation_completed: false
+    released: false
+  foundation:
+    repository: Qwen/Qwen3-Coder-480B-A35B-Instruct
+    revision: PIN_BEFORE_TRAINING
+    source_urls:
+      model_card: https://huggingface.co/Qwen/Qwen3-Coder-480B-A35B-Instruct
+      config: https://huggingface.co/Qwen/Qwen3-Coder-480B-A35B-Instruct/raw/main/config.json
+      license: https://huggingface.co/Qwen/Qwen3-Coder-480B-A35B-Instruct/blob/main/LICENSE
+    required_manifest:
+      algorithm: sha256
+      file_inventory: required
+      weight_shard_hashes: required
+      config_hash: required
+      tokenizer_hashes: required
+      chat_template_hash: required
+      license_hash: required
+      notices_hash: required_if_present
+      artifact_id: artifact://foundation/PIN_BEFORE_TRAINING
+      manifest_id: manifest://foundation/PIN_BEFORE_TRAINING
+    license:
+      spdx: Apache-2.0
+      preserve_upstream_license_and_notices: true
+  architecture:
+    model_type: qwen3_moe
+    parameters:
+      total: 480000000000
+      active_per_token: 35000000000
+    layers: 62
+    hidden_size: 6144
+    attention:
+      query_heads: 96
+      key_value_heads: 8
+      head_dim: 128
+      qkv_bias: false
+      qk_norm: true
+    moe:
+      routed_experts: 160
+      experts_per_token: 8
+      shared_experts: 0
+      expert_intermediate_size: 2560
+    vocab_size: 151936
+    max_position_embeddings: 262144
+    tie_word_embeddings: false
+    master_dtype: bfloat16
+  identity:
+    model_name: "LÆTEX"
+    company: NULLXES
+    tool_protocol: nullxes_action_v1
+    response_contract:
+      required_fields:
+        - plan
+        - action
+        - observed_delta
+        - evidence
+        - risk
+        - approval_state
+        - audit_entry
+  adaptation_policy:
+    initial_method: lora
+    status: engineering_hypothesis
+    lora:
+      rank: 64
+      alpha: 128
+      dropout: 0.05
+      targets:
+        strategy: resolve_from_pinned_state_dict
+        class: attention_projections
+        exact_modules: PIN_AFTER_STATE_DICT_AUDIT
+    initially_frozen:
+      - router
+      - routed_experts
+      - input_embeddings
+      - output_embeddings
+      - tokenizer
+    optimizer_reset_between_training_stages: true
+    tokenizer_change_allowed: false
+  merge_policy:
+    merge_dtype: bfloat16
+    preserve_source_adapters: true
+    immutable_parent_required: true
+    write_new_immutable_artifact: true
+    new_parent_sha256_required: true
+    forbidden_weight_precisions: [float8, int8, int4]
+  context_policy:
+    initial_train_and_eval_tokens: 32768
+    extension_target_tokens: 65536
+    native_tokens: 262144
+    native_window_mode: evaluation_only_until_validated
+    production_262144_enabled: false
+  runtime_policy:
+    provider: RunPod
+    accelerator: NVIDIA_H200
+    training_cluster:
+      required: true
+      topology: HGX_H200
+      provider_attestation_required:
+        intra_node: NVLink_NVSwitch
+        inter_node: InfiniBand
+        allocation_exists: false
+    inference_cluster:
+      required: true
+      accelerator: NVIDIA_H200
+    local_model_execution: forbidden
+    local_training: forbidden
+    final_runtime_precision: float8_after_bfloat16_parity_only
+    quantized_merge: forbidden
+  lineage:
+    - {stage: S0-UPSTREAM, manifest: stages/S0-UPSTREAM.yaml}
+    - {stage: A1-IDENTITY, manifest: stages/S1-IDENTITY.yaml}
+    - {stage: M1-IDENTITY-MERGED, manifest: stages/M1-IDENTITY-MERGED.yaml}
+    - {stage: A2-ACTION-SFT, manifest: stages/S2-ACTION-SFT.yaml}
+    - {stage: M2-ACTION-MERGED, manifest: stages/M2-ACTION-MERGED.yaml}
+    - {stage: A3-PREFERENCE, manifest: stages/S3-PREFERENCE.yaml}
+    - {stage: M3-PREFERENCE-MERGED, manifest: stages/M3-PREFERENCE-MERGED.yaml}
+    - {stage: A4-GRPO, manifest: stages/S4-GRPO.yaml}
+    - {stage: M4-RELEASE, manifest: stages/M4-RELEASE.yaml}
+    - {stage: FP8-SERVING-DERIVATIVE, profile: ../infra/runpod/profiles/fp8-export.yaml}

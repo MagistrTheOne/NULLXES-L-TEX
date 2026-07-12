@@ -3,7 +3,7 @@
 ## 1. Контракт программы
 
 - **[VERIFIED FACT]** Горизонт программы — 13 недель (90 календарных дней).
-- **[VERIFIED FACT]** Обучение, fine-tuning, генерация teacher trajectories и model inference выполняются только в RunPod на выделенных NVIDIA H200.
+- **[VERIFIED FACT]** Обучение, fine-tuning, model inference и любая отдельно одобренная генерация future critic trajectories выполняются только в RunPod на выделенных NVIDIA H200.
 - **[VERIFIED FACT]** Допустимая вычислительная топология использует H200 HGX с NVLink/NVSwitch внутри узла.
 - **[EXPERIMENT REQUIRED]** Перед multi-node run конкретный RunPod allocation обязан предоставить attestation InfiniBand/high-bandwidth fabric и пройти NCCL acceptance.
 - **[RISK]** Внешняя документация не подтверждает fabric конкретного allocation; отсутствие attestation означает NO-GO.
@@ -11,6 +11,7 @@
 - **[RISK]** Любой локальный запуск модели, локальное обучение или перенос весов на рабочую станцию нарушает compute boundary и блокирует релиз.
 - **[ENGINEERING HYPOTHESIS]** E-01 должен доказать превосходство в ограниченном наборе enterprise coding scenarios по verified task completion, стоимости, задержке, приватности и аудируемости; универсальное превосходство над frontier-моделями не является целью.
 - **[EXPERIMENT REQUIRED]** Значения производительности и качества считаются неизвестными до двух чистых воспроизводимых прогонов LÆTEX-Bench.
+- **[VERIFIED FACT]** Direct foundation — post-trained `Qwen/Qwen3-Coder-480B-A35B-Instruct`; 80B Base, broad CPT по умолчанию и роль same-model teacher исключены.
 
 ## 2. Роли владельцев
 
@@ -50,7 +51,7 @@
 - **[VERIFIED FACT]** Владелец: Data Lead; зависимости: baseline contamination rules.
 - **[VERIFIED FACT]** Сырые данные enterprise-клиента запрещено включать в общий LÆTEX Corpus без явного opt-in и отдельного legal/data approval.
 - **[EXPERIMENT REQUIRED]** Проверить PII/secrets detectors на размеченной контрольной выборке.
-- **[RISK]** Неотслеживаемая синтетика может воспроизвести лицензируемые или приватные данные teacher.
+- **[RISK]** Неотслеживаемая синтетика может воспроизвести лицензируемые или приватные данные отдельно выбранного future critic.
 - **[VERIFIED FACT]** GO: каждый sample имеет source, license, transformation, consent, tenant scope и lineage ID. NO-GO: orphan samples или неустранённые PII/secrets.
 
 ### Неделя 4 — зафиксировать CodeWorld и tool contracts
@@ -62,59 +63,54 @@
 - **[RISK]** Несвежий state создаёт правдоподобные, но неверные действия.
 - **[VERIFIED FACT]** GO: state refresh и audit entry обязательны после каждого write action. NO-GO: write tool может обойти policy pre-check или ledger.
 
-### Неделя 5 — подготовить CPT/SFT production pipeline
+### Неделя 5 — подготовить staged adapter/merge pipeline
 
-- **[VERIFIED FACT]** Артефакты: Megatron-LM/DeepSpeed job specs, data mixer, checkpoint strategy, recovery drill, run-cost estimator.
+- **[VERIFIED FACT]** Артефакты: attention-LoRA job specs, BF16 merge recipe, immutable lineage registry, fresh-optimizer rule, recovery drill и run-cost estimator.
 - **[VERIFIED FACT]** Владелец: Research Lead; со-владелец: Platform Lead; зависимости: corpus intake и RunPod H200 quota.
 - **[VERIFIED FACT]** Минимальная и рекомендуемая H200-конфигурации фиксируются в run manifest до выделения бюджета; DP/TP/PP/EP фиксируются для каждого run.
 - **[EXPERIMENT REQUIRED]** Короткий pipeline validation run на H200 с синтетическим обезличенным shard; это не quality experiment.
 - **[RISK]** Непроверенный resume может потерять дорогой training run.
 - **[VERIFIED FACT]** GO: checkpoint restore, metric continuity и artifact upload подтверждены. NO-GO: локальный fallback, untracked image или неполный checkpoint.
 
-### Неделя 6 — выполнить ограниченный CPT run
+### Неделя 6 — identity LoRA M1
 
-- **[VERIFIED FACT]** Артефакты: CPT checkpoint candidate, run manifest, data lineage snapshot, loss/throughput telemetry, cost ledger.
-- **[VERIFIED FACT]** Владелец: Research Lead; зависимости: недели 3 и 5.
-- **[ENGINEERING HYPOTHESIS]** Ограниченный enterprise/code CPT улучшит domain fit без заметной потери coding capability.
-- **[EXPERIMENT REQUIRED]** Сравнить candidate с immutable base baseline на coding retention, perplexity slices и identity probes.
-- **[RISK]** Catastrophic forgetting или router degradation может уничтожить преимущество foundation checkpoint.
-- **[VERIFIED FACT]** GO: нет статистически подтверждённой регрессии на predeclared retention gates. NO-GO: gate breach; checkpoint изолируется и не продвигается.
+- **[VERIFIED FACT]** Артефакты: unified attention-only identity adapter M1, S0/adapter hashes, run manifest, data lineage и telemetry.
+- **[ENGINEERING HYPOTHESIS]** Узкий identity stage изменит self-identification и contract behavior без broad CPT.
+- **[EXPERIMENT REQUIRED]** Проверить M1 до merge: identity `0/10 000`, tool gate и coding regression `<=2 pp`.
+- **[RISK]** Generic refusal может искусственно улучшить identity score и повредить coding.
+- **[VERIFIED FACT]** GO: все hard gates пройдены. NO-GO: adapter сохраняется как failed artifact и не merge-ится.
 
-### Неделя 7 — выполнить verified SFT
+### Неделя 7 — BF16 merge M1 и повторная verification
 
-- **[VERIFIED FACT]** Артефакты: SFT checkpoint candidate, verified-example manifest, failure taxonomy, tool-call conformance report.
-- **[VERIFIED FACT]** Владелец: Research Lead; зависимости: CPT candidate и verified SFT set.
-- **[ENGINEERING HYPOTHESIS]** Full SFT с собственным response/tool contract должен изменить поведение без смены tokenizer.
-- **[EXPERIMENT REQUIRED]** Проверить tool validity, identity overwrite и coding retention на held-out наборах.
-- **[RISK]** Синтетические ответы teacher могут закрепить формат без реальной task completion.
-- **[VERIFIED FACT]** GO: candidate проходит промежуточные gates и улучшает verified outcomes. NO-GO: улучшение только style/model-grader score без executable evidence.
+- **[VERIFIED FACT]** Parent merge — только BF16 S0; identity adapter, parent, recipe и merged M1 сохраняются с immutable hashes.
+- **[VERIFIED FACT]** FP8/INT4 parent запрещён; optimizer state не переносится через merge.
+- **[EXPERIMENT REQUIRED]** Post-merge M1 повторяет identity/tool/coding regression suite и pre/post parity.
+- **[RISK]** Merge drift без отдельной проверки может скрыть потерю identity behavior.
+- **[VERIFIED FACT]** GO: signed M1 report и reproducible merge. NO-GO: merged M1 не становится parent.
 
-### Неделя 8 — preference optimization и failure recovery
+### Неделя 8 — action SFT M2
 
-- **[VERIFIED FACT]** Артефакты: preference dataset, recovery trajectories, candidate checkpoint, reward audit.
-- **[VERIFIED FACT]** Владелец: Research Lead; со-владелец: Safety & Governance Lead; зависимости: SFT candidate.
-- **[ENGINEERING HYPOTHESIS]** Preferences по evidence quality, reversibility и escalation улучшат безопасное выполнение.
-- **[EXPERIMENT REQUIRED]** Проверить reward hacking, over-refusal, under-escalation и recovery after tool failure.
-- **[RISK]** Оптимизация proxy reward может снизить реальный VETCR.
-- **[VERIFIED FACT]** GO: VETCR не падает, policy behavior улучшается на held-out cases. NO-GO: reward растёт при ухудшении executable metrics.
+- **[VERIFIED FACT]** M2 использует новый unified attention-only adapter поверх verified BF16 M1 и fresh optimizer.
+- **[ENGINEERING HYPOTHESIS]** Verified action SFT закрепит tool grammar, evidence и recovery лучше identity-only M1.
+- **[EXPERIMENT REQUIRED]** Проверить executable outcomes, identity `0/10 000`, tool validity и coding regression `<=2 pp`.
+- **[RISK]** Форматный SFT может улучшить schema score без task completion.
+- **[VERIFIED FACT]** GO: M2 проходит hard gates. NO-GO: M2 не merge-ится.
 
-### Неделя 9 — executable RL / GRPO в sandbox
+### Неделя 9 — BF16 merge M2 и lineage freeze
 
-- **[VERIFIED FACT]** Артефакты: sandbox image registry, GRPO run manifest, trajectory ledger, verifier report, candidate checkpoint.
-- **[VERIFIED FACT]** Владелец: Research Lead; зависимости: sandbox isolation, deterministic graders, policy pre-check.
-- **[ENGINEERING HYPOTHESIS]** Executable reward улучшит завершение задач и устойчивость после tool failures.
-- **[EXPERIMENT REQUIRED]** Оценить gain на unseen tasks, rollback correctness и policy escape rate.
-- **[RISK]** Sandbox exploit или grader gaming создаёт ложное качество.
-- **[VERIFIED FACT]** GO: reward подтверждается независимыми graders и replay. NO-GO: escape, non-replayable gain или contamination.
+- **[VERIFIED FACT]** M2 merge повторяет BF16-only, retained-adapter, immutable-hash, post-merge regression и fresh-optimizer gates.
+- **[EXPERIMENT REQUIRED]** Freeze release lineage `S0/M1/M2`; M3 preference и M4 GRPO остаются `not_started` до отдельного approval.
+- **[RISK]** Сжатие M3/M4 в 90 дней ради графика создаёт непроверенный reward-hacking risk.
 
-### Неделя 10 — router и Organizational World Model V0
+### Неделя 10 — World Model V0 и deferred routing ablation design
 
 - **[VERIFIED FACT]** Артефакты: adapter routing policy, route audit fields, graph/event-ledger/policy-engine V0, stale-state detector.
 - **[VERIFIED FACT]** Владелец: Product/Workflow Lead; со-владельцы: Research Lead, Safety & Governance Lead.
-- **[ENGINEERING HYPOTHESIS]** Top-2 domain adapters плюс shared Evidence/Policy adapter полезны только при измеримом выигрыше над single-adapter control.
-- **[EXPERIMENT REQUIRED]** Проверить router collapse, route stability, explainability и ablation against no-router control.
+- **[VERIFIED FACT]** Initial E-01 сохраняет unified adapter; base router 160-expert Top-8 не изменяется.
+- **[EXPERIMENT REQUIRED]** Спроектировать, но не считать выполненным, ablation восьми dynamic domain adapters против unified control.
+- **[ENGINEERING HYPOTHESIS]** Внешний Evidence/Policy adapter может быть полезен, но не является shared base expert.
 - **[RISK]** Learned router может маршрутизировать по поверхностным метаданным и скрыть причину ошибки.
-- **[VERIFIED FACT]** GO: routing даёт воспроизводимый gain и полный audit trail. NO-GO: отсутствие gain; E-01 остаётся на статической routing policy.
+- **[VERIFIED FACT]** GO: World Model V0 и audit trail готовы. Dynamic routing остается deferred до отдельного доказанного gain.
 
 ### Неделя 11 — интеграционный hardening
 
@@ -142,7 +138,7 @@
 
 ## 4. Сквозные зависимости и бюджетные остановки
 
-- **[VERIFIED FACT]** Порядок критического пути: immutable baseline → governed corpus → reproducible H200 pipeline → CPT/SFT/RL candidates → integration hardening → два clean runs.
+- **[VERIFIED FACT]** Порядок критического пути: immutable S0 baseline → governed identity/action sets → H200 pipeline → M1 train/verify/BF16 merge → M2 train/verify/BF16 merge → integration hardening → два clean runs.
 - **[RISK]** Запуск дорогого H200 training до готовности evaluation и lineage создаёт checkpoint без доказательной ценности.
 - **[VERIFIED FACT]** H200 run экономически разрешён только при наличии pre-registered objective, stop condition, budget cap, artifact destination и rollback/resume plan.
 - **[ENGINEERING HYPOTHESIS]** Недельные gates снижают sunk-cost risk лучше, чем один финальный benchmark.

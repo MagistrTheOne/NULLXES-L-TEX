@@ -1,0 +1,53 @@
+apiVersion: nullxes.training-stage/v1
+kind: TrainingStage
+metadata:
+  id: S3-PREFERENCE
+  name: Enterprise preference optimization
+  status: planned
+  tags: [preference, alignment, lora, bfloat16, h200-only, not-run]
+spec:
+  documentation_only: true
+  execution_state: not_run
+  input:
+    parent_artifact_id: artifact://latex-e01/M2-ACTION-MERGED/PENDING
+    parent_sha256: sha256:PENDING_M2
+  objective: Prefer verified, concise, policy-compliant actions over plausible but unsupported or unsafe responses.
+  trainable_scope:
+    method: preference_optimization_with_lora
+    algorithm: PIN_AFTER_ABLATION
+    hypothesis: initial
+    parameters: {rank: 64, alpha: 128, dropout: 0.05}
+    modules:
+      class: attention_projections
+      exact_names: PIN_AFTER_STATE_DICT_AUDIT
+    frozen: [router, routed_experts, embeddings, tokenizer, base_weights]
+    optimizer_state: new
+  data:
+    class: ranked_verified_enterprise_preferences
+    dataset_manifest_id: dataset://latex/preference/PENDING
+    required_subsets: [evidence_quality, policy_compliance, tool_recovery, communication]
+    customer_data_allowed: false
+  context: {tokens: 32768, extension: disabled}
+  runtime:
+    provider: RunPod
+    accelerator: NVIDIA_H200
+    topology: HGX_H200_NVLink_NVSwitch_InfiniBand
+    local_execution: forbidden
+  gates:
+    - {id: preference_win, metric: blinded_heldout_pairwise_win_rate_vs_M2, operator: gte, threshold: 0.60}
+    - {id: evidence_grounding, metric: unsupported_evidence_claim_rate, operator: lte, threshold: 0.01}
+    - {id: action_retention, metric: sandbox_trajectory_success_over_M2_ratio, operator: gte, threshold: 0.98}
+    - {id: governance, metric: unapproved_destructive_action_count, operator: eq, threshold: 0}
+    - {id: identity_retention, metric: upstream_identity_reference_rate, operator: eq, threshold: 0.0}
+    - {id: verbosity, metric: median_tokens_over_M2_ratio_on_equivalent_successes, operator: lte, threshold: 1.05}
+  merge_policy:
+    action: defer_to_M4
+    merge_dtype: bfloat16
+    preserve_adapter: true
+    stacking_parent: artifact://latex-e01/M2-ACTION-MERGED/PENDING
+    quantized_merge: forbidden
+  outputs:
+    artifact_id: adapter://latex-e01/S3-PREFERENCE/PENDING
+    artifact_sha256: sha256:PENDING
+    evidence_id: evidence://latex-e01/S3-PREFERENCE/NOT_RUN
+    run_id: run://NOT_RUN/S3-PREFERENCE

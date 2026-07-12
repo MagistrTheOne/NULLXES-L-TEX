@@ -1,62 +1,65 @@
-schema: laetex.runpod.profile/v1
-name: sft
+schema: laetex.runpod.profile/v2
+name: enterprise-action-sft
 phase: 2
 classification: ENGINEERING_HYPOTHESIS
-purpose: "Verified enterprise SFT и identity/tool-contract overwrite."
+purpose: "Enterprise Action SFT as BF16 LoRA on M1."
+foundation:
+  repo: Qwen/Qwen3-Coder-480B-A35B-Instruct
+  role: foundation_and_production_candidate
+  teacher: none
+  master_precision: BF16
+  parent: M1-bf16-merged
 platform:
   provider: RunPod
   cloud: Secure Cloud
-  deployment: {minimum: secure-cloud-pod, recommended: instant-cluster}
   local_model_workloads: forbidden
+  deployment: {minimum: instant-cluster, recommended: instant-cluster}
 compute:
-  gpu: {model: NVIDIA H200 SXM, hbm_gb: 141}
-  minimum_gpus: 8
-  recommended_gpus: 32
-  minimum_nodes: 1
-  recommended_nodes: 4
-  gpus_per_node: 8
-  precision: BF16
+  gpu: {model: NVIDIA H200 SXM, hbm_gb: 141, gpus_per_node: 8}
+  minimum: {gpus: 16, nodes: 2}
+  recommended: {gpus: 32, nodes: 4}
+  long_context_recommended: {gpus: 64, nodes: 8, sequence_tokens: "32768-65536"}
+  precision: "BF16 weights and LoRA; no FP8 training"
 parallelism:
-  minimum: {TP: 2, PP: 1, EP: 4, CP: 1, DP: 4}
-  recommended: {TP: 2, PP: 1, EP: 8, CP: 1, DP: 16}
-  note: "World size 8/32 via TP×PP×CP×DP; adapter parameters separately sharded, EP mapping validated before run."
+  minimum: {world_size: 16, TP: 8, PP: 2, CP: 1, DP: 1, EP: 1}
+  recommended: {world_size: 32, TP: 8, PP: 2, CP: 1, DP: 2, EP: 1}
+  long_context_recommended: {world_size: 64, TP: 8, PP: 2, CP: 2, DP: 2, EP: 1}
+  world_size_rule: "world_size=TP*PP*CP*DP; EP is not an extra multiplier"
+  ep_semantics: "Base router and 160 routed experts frozen; adapter-router is not trained in this phase"
 network:
-  intra_node: NVLink/NVSwitch
-  inter_node: "Required before run: provider-attested InfiniBand/high-bandwidth fabric on RunPod ens*; external docs do not attest this allocation"
-  acceptance: "IB/NCCL and dataloader acceptance; no public training endpoint"
+  required: "NVLink/NVSwitch intra-node; provider-attested InfiniBand on RunPod ens* inter-node"
+  acceptance: "Written IB attestation, NCCL, dataloader and distributed-loss parity; no eth0 fallback"
 storage:
-  working_set: "/workspace Network Volume: verified examples and active adapter checkpoints"
-  durable_registry: "External encrypted object store: immutable SFT data, base/CPT snapshot, promoted bundle"
-  minimum_working_set_tb: 4
-  recommended_working_set_tb: 8
+  working_set: "RunPod Network Volume /workspace; verified SFT examples and adapter state"
+  durable_registry: "External encrypted object store for M1, A2, M2, data manifests and evidence"
+  local_scratch: ephemeral_only
 checkpoint:
-  format: "Distributed base reference + adapter/trainable-state shards"
-  cadence: "Every 500 steps or 2 hours"
-  retained: "last 3 + metric-best + end-of-epoch"
+  input: "M1 BF16 master plus frozen tokenizer/template contract"
+  output: "A2 retained Enterprise Action SFT adapter; M2=A2 merged into M1 in BF16"
+  cadence: "Adapter plus optimizer/RNG/data cursor every 500 steps or 2 hours"
+  retention: "M1, promoted A2 adapters, M2 BF16 and merge/eval manifests"
+  optimizer_policy: "Fresh optimizer initialized from M1; no Stage 1 optimizer resume"
 wall_clock:
   tag: ENGINEERING_HYPOTHESIS
-  estimate: "4–10 days on 8 H200 or 1–4 days on 32 H200, including periodic evaluation"
+  estimate: "8-16K: 3-8 days on 16 H200 or 2-5 days on 32; 32-64K: 3-8 days on 64 after pilot"
 metrics:
-  primary: "Verified SFT task exact-pass rate"
-  exact_gate: ">=10% relative VETCR gain over CPT and identity leakage = 0/10,000 adversarial prompts"
+  primary: VETCR
+  exact_gate: ">=10% relative gain over M1; schema>=99.5%; evidence>=98%; coding regression<=2 pp"
 stop_conditions:
-  - "Identity leakage >0 at release-candidate eval"
-  - ">2 pp regression on protected coding baseline"
-  - "Validation loss rises in two consecutive evaluations"
-economic_gate: "Run recommended size only when verified-example acceptance >=90% and one-epoch pilot shows positive VETCR slope."
+  - "Identity leakage, schema validity <99%, or protected coding regression >2 pp"
+  - "Any base-router or routed-expert weight mutation"
+economic_gate: "Scale only when accepted-example rate>=90% and pilot VETCR slope is positive."
 artifacts:
-  - "laetex-sft-adapter-bundle"
-  - "chat-template-and-tool-schema"
-  - "identity-adversarial-report"
-  - "protected-capability-report"
+  - A2-enterprise-action-sft-lora
+  - M2-bf16-merged
+  - action-sft-lineage-and-evidence
 validation:
-  schema_checks:
-    - "Secure Cloud 8xH200 Pod minimum; H200 Instant Cluster recommended"
-    - "Tokenizer hash equals approved base tokenizer"
-    - "No raw tenant data without opt-in lineage"
-    - "No secrets"
-  status: documentation_profile_not_provisioning
+  profile_only: true
+  checks:
+    - "16=8*2*1*1; 32=8*2*1*2; 64=8*2*2*2"
+    - "A2 retained; M2 BF16 only; fresh optimizer"
+    - "No raw tenant data without explicit opt-in lineage"
 assumptions:
-  - {tag: ENGINEERING_HYPOTHESIS, statement: "BF16 LoRA/selective tuning предпочтительнее QLoRA для E-01 fidelity."}
-  - {tag: RISK, statement: "Identity overwrite может снизить coding capability без replay mix."}
+  - {tag: ENGINEERING_HYPOTHESIS, statement: "BF16 LoRA plus protected replay can improve enterprise actions without expert tuning."}
+  - {tag: RISK, statement: "Frozen experts may cap domain adaptation; unfreeze is not an E-01 default."}
 

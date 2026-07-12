@@ -1,17 +1,19 @@
 # ADR-0002: request-level routing для domain adapters
 
-- **VERIFIED FACT:** Статус: Accepted.
+- **VERIFIED FACT:** Статус: Accepted with staged deferral.
 - **VERIFIED FACT:** Область: E-01 Adapter-MoE.
 
 ## Контекст
 
-- **VERIFIED FACT:** Foundation уже имеет внутренний token-level MoE router: 512 experts, Top-10 + shared.
+- **VERIFIED FACT:** Foundation `Qwen3-Coder-480B-A35B-Instruct` имеет внутренний token-level MoE router: 160 experts, Top-8 и не имеет shared base expert (`shared_expert_intermediate_size: 0`).
 - **RISK:** Изменение internal router смешивает domain specialization с backbone computation и повышает риск catastrophic forgetting/expert collapse.
 - **ENGINEERING HYPOTHESIS:** Enterprise task metadata позволяет выбрать domain specialization до decoding и объяснить route в audit.
 
 ## Решение
 
-- **VERIFIED FACT:** Router выбирает Top-2 из восьми domain adapter packs один раз на request; shared Evidence/Policy adapter активен всегда.
+- **VERIFIED FACT:** Initial E-01 обучает unified attention-only stage adapters и не изменяет base router; LoRA всех 160 experts не входит в initial scope.
+- **EXPERIMENT REQUIRED:** Dynamic request-level Top-2 routing восьми domain adapters отложен до доказанного uplift против unified-adapter control.
+- **ENGINEERING HYPOTHESIS:** В будущем внешний Evidence/Policy adapter может быть always-on, но он не является и не называется shared base expert.
 - **VERIFIED FACT:** Router не выдаёт permissions и не заменяет policy engine.
 - **ENGINEERING HYPOTHESIS:** Route фиксируется на request; dynamic reroute разрешён только как новый traced phase после tool observation.
 
@@ -24,4 +26,5 @@
 
 ## Audit
 
-- **VERIFIED FACT:** Audit entry хранит router version, non-sensitive feature categories, scores, selected packs, shared pack и rationale codes.
+- **VERIFIED FACT:** Initial audit хранит unified adapter/version и lineage stage.
+- **EXPERIMENT REQUIRED:** Если dynamic routing будет принят, audit entry хранит router version, non-sensitive feature categories, scores, selected packs, внешний Evidence/Policy adapter и rationale codes.

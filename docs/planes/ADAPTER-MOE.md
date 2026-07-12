@@ -2,13 +2,15 @@
 
 ## Назначение
 
-- **ENGINEERING HYPOTHESIS:** Plane специализирует E-01 через восемь domain packs, request-level Top-2 routing и always-on shared Evidence/Policy adapter.
-- **VERIFIED FACT:** Это routing adapters на уровне request, а не 512-expert token routing внутреннего base MoE.
+- **VERIFIED FACT:** Initial E-01 использует unified attention-only LoRA по стадиям M1 identity и M2 action SFT.
+- **VERIFIED FACT:** Foundation имеет 160 внутренних experts, Top-8 и `shared_expert_intermediate_size: 0`; initial E-01 не LoRA-тюнингует все experts и не изменяет base router.
+- **EXPERIMENT REQUIRED:** Восемь dynamic domain adapters и request-level Top-2 routing отложены до ablation после M2.
 
 ## Inputs / outputs
 
 - **ENGINEERING HYPOTHESIS:** Inputs: authorized task metadata, tool inventory, asset classes, risk class, desired artifact и failure history.
-- **ENGINEERING HYPOTHESIS:** Outputs: two adapter IDs/versions, shared adapter version, calibrated scores, rationale codes и fallback indicator.
+- **VERIFIED FACT:** Initial output: один stage adapter ID/version и immutable lineage reference.
+- **ENGINEERING HYPOTHESIS:** Deferred output: two domain adapter IDs/versions, внешний Evidence/Policy adapter, calibrated scores, rationale codes и fallback indicator.
 
 ## Trust boundary
 
@@ -28,11 +30,19 @@
 ## Domain packs
 
 - **ENGINEERING HYPOTHESIS:** Code Construction; Systems Architecture; Integrations; DevOps/SRE; Security & Compliance; QA/Review; Enterprise Communication; Governance/Escalation.
-- **EXPERIMENT REQUIRED:** Placement, rank, composition order и per-domain data mix определяются ablation, а не единым rank для всех layers.
+- **EXPERIMENT REQUIRED:** Их полезность, attention placement, rank, composition order и per-domain data mix определяются ablation против unified adapter.
+- **VERIFIED FACT:** Возможный внешний Evidence/Policy adapter не является shared expert base MoE.
+
+## Staged train → verify → BF16 merge → train
+
+- **VERIFIED FACT:** `S0`: immutable BF16 upstream; `M1`: attention-only identity LoRA; verify; merge в BF16 S0; сохранить adapter и hashes.
+- **VERIFIED FACT:** `M2`: новый attention-only action-SFT adapter поверх verified BF16 M1 с fresh optimizer; verify; BF16 merge по тем же gates.
+- **EXPERIMENT REQUIRED:** M3 preference и M4 GRPO запускаются позднее и только от verified BF16 parent.
+- **VERIFIED FACT:** FP8/INT4 parent, потеря adapter delta или mutable merge recipe являются hard stop.
 
 ## Failure modes
 
-- **RISK:** Router collapse, expert starvation, oscillating routes, incompatible adapter composition, negative transfer, stale pack и policy adapter suppression.
+- **RISK:** Для deferred routing: router collapse, expert starvation, oscillating routes, incompatible composition, negative transfer, stale pack и Evidence/Policy suppression.
 - **EXPERIMENT REQUIRED:** Oracle/static/learned/no-adapter comparison и paraphrase stability suite обязательны.
 
 ## Observability
@@ -42,4 +52,5 @@
 
 ## Release artifact
 
-- **VERIFIED FACT:** Signed adapter packs, shared adapter, router artifact, taxonomy, calibration map, compatibility matrix, eval report и routing audit schema.
+- **VERIFIED FACT:** Initial artifact: signed unified adapter, BF16 parent/merge hashes, merge recipe, eval report и rollback lineage.
+- **EXPERIMENT REQUIRED:** Deferred artifact может добавить восемь packs, внешний Evidence/Policy adapter, router, taxonomy, calibration map и compatibility matrix.

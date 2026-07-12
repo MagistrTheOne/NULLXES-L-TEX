@@ -1,60 +1,63 @@
-schema: laetex.runpod.profile/v1
-name: preference
+schema: laetex.runpod.profile/v2
+name: preference-dpo-ipo
 phase: 3
 classification: ENGINEERING_HYPOTHESIS
-purpose: "Offline preference optimization по verified outcomes, evidence quality и safe action policy."
+purpose: "DPO/IPO BF16 LoRA on M2 using verified outcomes and cached reference log-probabilities."
+foundation:
+  repo: Qwen/Qwen3-Coder-480B-A35B-Instruct
+  role: foundation_and_production_candidate
+  teacher: none
+  master_precision: BF16
+  parent: M2-bf16-merged
 platform:
   provider: RunPod
   cloud: Secure Cloud
-  deployment: {minimum: secure-cloud-pod, recommended: instant-cluster}
   local_model_workloads: forbidden
+  deployment: {minimum: instant-cluster, recommended: instant-cluster}
 compute:
-  gpu: {model: NVIDIA H200 SXM, hbm_gb: 141}
-  minimum_gpus: 8
-  recommended_gpus: 32
-  minimum_nodes: 1
-  recommended_nodes: 4
-  gpus_per_node: 8
-  precision: BF16
+  gpu: {model: NVIDIA H200 SXM, hbm_gb: 141, gpus_per_node: 8}
+  minimum: {gpus: 32, nodes: 4}
+  recommended: {gpus: 64, nodes: 8}
+  precision: "BF16 weights and LoRA; no FP8 training"
 parallelism:
-  minimum: {TP: 2, PP: 1, EP: 4, CP: 1, DP: 4}
-  recommended: {TP: 2, PP: 1, EP: 8, CP: 1, DP: 16}
-  note: "Reference log-probabilities precomputed; world size validated as TP×PP×CP×DP."
+  minimum: {world_size: 32, TP: 8, PP: 2, CP: 1, DP: 2, EP: 1}
+  recommended: {world_size: 64, TP: 8, PP: 2, CP: 2, DP: 2, EP: 1}
+  world_size_rule: "world_size=TP*PP*CP*DP; EP is not an extra multiplier"
+  ep_semantics: "Base router/experts frozen; EP=1; reference log-probabilities precomputed and hash-bound to M2"
 network:
-  intra_node: NVLink/NVSwitch
-  inter_node: "Required before run: provider-attested InfiniBand/high-bandwidth fabric on RunPod ens*; external docs do not attest this allocation"
-  acceptance: "IB/NCCL pass plus pair-order integrity check"
+  required: "NVLink/NVSwitch intra-node; provider-attested InfiniBand on RunPod ens* inter-node"
+  acceptance: "Written IB attestation, NCCL, pair-order and distributed-loss parity; no eth0 fallback"
 storage:
-  working_set: "/workspace Network Volume: chosen/rejected pairs, cached reference log-probs"
-  durable_registry: "External encrypted object store: immutable pair lineage and checkpoints"
-  minimum_working_set_tb: 4
-  recommended_working_set_tb: 8
+  working_set: "RunPod Network Volume /workspace; immutable pairs and cached reference log-probabilities"
+  durable_registry: "External encrypted object store for M2, A3, M3, pairs and audit"
+  local_scratch: ephemeral_only
 checkpoint:
-  format: "Adapter/trainable state + optimizer + pair cursor"
-  cadence: "Every 500 steps or 2 hours"
-  retained: "last 3 + best VETCR/safety Pareto checkpoint"
+  input: "M2 BF16 master and M2-bound reference cache"
+  output: "A3 retained DPO/IPO adapter; M3=A3 merged into M2 in BF16"
+  cadence: "Adapter plus optimizer/RNG/pair cursor every 500 steps or 2 hours"
+  retention: "M2, all promoted method adapters, selected A3, M3 BF16 and ablation report"
+  optimizer_policy: "Fresh optimizer per DPO/IPO run; no Stage 2 optimizer resume"
 wall_clock:
   tag: ENGINEERING_HYPOTHESIS
-  estimate: "1–4 days per method; 3–8 days for controlled three-method ablation"
+  estimate: "2-5 days per method on 32 H200; 3-8 days for controlled DPO/IPO selection on 64"
 metrics:
-  primary: "Held-out verified preference accuracy"
-  exact_gate: ">=65% pair accuracy, >=5% relative VETCR gain vs SFT, zero increase in unsafe-action execution rate"
+  primary: verified_preference_accuracy
+  exact_gate: "Pair accuracy>=65%; VETCR>=5% relative over M2; no safety increase; coding regression<=2 pp"
 stop_conditions:
-  - "KL exceeds approved band in two evaluations"
-  - "Unsafe-action execution rate rises above SFT"
-  - ">2 pp protected coding regression"
-economic_gate: "Proceed only if pair-label inter-rater agreement >=0.8 or executable verifier adjudicates the outcome."
+  - "KL leaves frozen band twice or unsafe-action rate rises"
+  - "Protected coding regression >2 pp or base-router/expert mutation"
+economic_gate: "Proceed only with executable adjudication or inter-rater agreement>=0.8."
 artifacts:
-  - "preference-adapter-bundle"
-  - "pair-lineage-manifest"
-  - "KL-and-safety-report"
+  - A3-preference-lora
+  - M3-bf16-merged
+  - dpo-ipo-selection-and-lineage
 validation:
-  schema_checks:
-    - "Cached reference hash matches SFT policy"
-    - "No online teacher dependency"
-    - "No secrets or tenant leakage"
-  status: documentation_profile_not_provisioning
+  profile_only: true
+  checks:
+    - "32=8*2*1*2 and 64=8*2*2*2"
+    - "A3 retained; M3 BF16 only; fresh optimizer"
+    - "No default teacher or online critic dependency"
 assumptions:
-  - {tag: EXPERIMENT_REQUIRED, statement: "Выбрать DPO/IPO/ORPO по controlled ablation, а не заранее."}
-  - {tag: RISK, statement: "Синтетические preferences могут закрепить teacher bias."}
+  - {tag: EXPERIMENT_REQUIRED, statement: "Select DPO versus IPO on a controlled VETCR-safety Pareto comparison."}
+  - {tag: RISK, statement: "Self-generated preferences from the same foundation can amplify bias; executable evidence remains authoritative."}
 

@@ -8,11 +8,64 @@ manifest:
   status: template_not_frozen
   classification: VERIFIED_FACT
 
-base:
-  repository: Qwen/Qwen3-Coder-Next-Base
-  revision: 1b6df59d5f75ab51edb9ad8cb3ea69c5d0aedd57
+foundation:
+  classification: VERIFIED_FACT
+  repository: Qwen/Qwen3-Coder-480B-A35B-Instruct
+  revision: 9d90cf8fca1bf7b7acca42d3fc9ae694a2194069
   checkpoint_hash: "<BASE_CHECKPOINT_MERKLE_ROOT>"
   tokenizer_hash: "<TOKENIZER_HASH>"
+  format: BF16
+  training_stage: post_trained_instruct
+  broad_cpt_default: excluded
+  same_model_teacher_role: excluded
+
+lineage:
+  classification: VERIFIED_FACT
+  s0:
+    role: immutable_upstream_bf16
+    parent: null
+    checkpoint_hash: "<S0_BF16_CHECKPOINT_MERKLE_ROOT>"
+    status: "<PIN_BEFORE_RUN>"
+  m1:
+    role: attention_only_identity_lora_then_bf16_merge
+    parent: s0
+    adapter_hash: "<M1_IDENTITY_ADAPTER_HASH>"
+    adapter_retained: true
+    merge_recipe_hash: "<M1_MERGE_RECIPE_HASH>"
+    merged_bf16_checkpoint_hash: "<M1_BF16_MERGED_HASH>"
+    optimizer_state: fresh
+    gate_report_hash: "<M1_IDENTITY_TOOL_CODING_GATE_REPORT_HASH>"
+    status: "<PIN_BEFORE_RUN>"
+  m2:
+    role: attention_only_action_sft_then_bf16_merge
+    parent: m1
+    adapter_hash: "<M2_ACTION_ADAPTER_HASH>"
+    adapter_retained: true
+    merge_recipe_hash: "<M2_MERGE_RECIPE_HASH>"
+    merged_bf16_checkpoint_hash: "<M2_BF16_MERGED_HASH>"
+    optimizer_state: fresh
+    gate_report_hash: "<M2_IDENTITY_TOOL_CODING_GATE_REPORT_HASH>"
+    status: "<PIN_BEFORE_RUN>"
+  m3:
+    role: preference_optimization_deferred
+    parent: m2
+    checkpoint_hash: "<M3_HASH_OR_NOT_STARTED>"
+    status: not_started
+  m4:
+    role: executable_grpo_deferred
+    parent: m3
+    checkpoint_hash: "<M4_HASH_OR_NOT_STARTED>"
+    status: not_started
+
+merge_policy:
+  classification: VERIFIED_FACT
+  parent_precision: BF16
+  forbidden_parent_precisions: [FP8, INT4]
+  require_retained_adapter: true
+  require_immutable_hashes: true
+  require_fresh_optimizer: true
+  require_pre_post_merge_regression: true
+  require_identity_tool_gates: true
 
 task_splits:
   repository_engineering_id: "<IMMUTABLE_SPLIT_ID>"
@@ -29,6 +82,8 @@ thresholds:
   vetcr_delta_min: "<FREEZE_BEFORE_RUN>"
   tool_validity_min: "<FREEZE_BEFORE_RUN>"
   coding_non_inferiority_margin_pp: 2
+  identity_hard_gate_count: 0
+  identity_prompt_count: 10000
   cost_per_verified_task_ceiling: "<FREEZE_BEFORE_RUN>"
   latency_envelope_id: "<FROZEN_LATENCY_ENVELOPE_ID>"
   clean_run_tolerance_id: "<FROZEN_TOLERANCE_ID>"
@@ -61,6 +116,8 @@ artifact_hashes:
   sandbox_images: "<SANDBOX_IMAGE_SET_HASH>"
   graders: "<GRADER_BUNDLE_HASH>"
   statistical_code: "<STATISTICAL_CODE_REVISION_HASH>"
+  lineage_bundle: "<S0_M1_M2_M3_M4_LINEAGE_BUNDLE_HASH>"
+  merge_verification_reports: "<MERGE_VERIFICATION_REPORT_SET_HASH>"
 
 hard_gates:
   identity:

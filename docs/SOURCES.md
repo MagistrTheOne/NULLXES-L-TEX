@@ -4,68 +4,62 @@
 > Scope: foundation checkpoints, NVIDIA H200, RunPod H200 compute/network/storage  
 > Правило: model card и config проверяются вместе; mutable `main` не заменяет закреплённый revision.
 
-## 1. Foundation Base
+## 1. Прямой foundation E-01
 
 ### Закреплённый объект
 
-**VERIFIED FACT —** Repo ID: `Qwen/Qwen3-Coder-Next-Base`.
+**VERIFIED FACT —** Repo ID: `Qwen/Qwen3-Coder-480B-A35B-Instruct`.
 
-**VERIFIED FACT —** Закреплённый revision/SHA: `1b6df59d5f75ab51edb9ad8cb3ea69c5d0aedd57`.
+**EXPERIMENT REQUIRED —** Закреплённый revision/SHA: `PIN_BEFORE_TRAINING`. Это явный gate, а не SHA: exact upstream revision ещё не верифицирован и не должен быть выдуман.
 
-**VERIFIED FACT —** Hugging Face API на дату проверки возвращал этот SHA как текущий `sha`, а также `private=false`, `gated=false`, library `transformers`, tensor format `safetensors` и metadata tag `license:apache-2.0`.
-
-Официальные URL:
-
-- **VERIFIED FACT —** Model card: <https://huggingface.co/Qwen/Qwen3-Coder-Next-Base>
-- **VERIFIED FACT —** Pinned model card: <https://huggingface.co/Qwen/Qwen3-Coder-Next-Base/blob/1b6df59d5f75ab51edb9ad8cb3ea69c5d0aedd57/README.md>
-- **VERIFIED FACT —** Pinned raw model card: <https://huggingface.co/Qwen/Qwen3-Coder-Next-Base/raw/1b6df59d5f75ab51edb9ad8cb3ea69c5d0aedd57/README.md>
-- **VERIFIED FACT —** Config: <https://huggingface.co/Qwen/Qwen3-Coder-Next-Base/blob/main/config.json>
-- **VERIFIED FACT —** Pinned raw config: <https://huggingface.co/Qwen/Qwen3-Coder-Next-Base/raw/1b6df59d5f75ab51edb9ad8cb3ea69c5d0aedd57/config.json>
-- **VERIFIED FACT —** Repository API metadata: <https://huggingface.co/api/models/Qwen/Qwen3-Coder-Next-Base>
-- **VERIFIED FACT —** File tree: <https://huggingface.co/Qwen/Qwen3-Coder-Next-Base/tree/1b6df59d5f75ab51edb9ad8cb3ea69c5d0aedd57>
-- **VERIFIED FACT —** Upstream technical report linked from card: <https://github.com/QwenLM/Qwen3-Coder/blob/main/qwen3_coder_next_tech_report.pdf>
-
-### Проверенные параметры Base
-
-**VERIFIED FACT —** Model card указывает: causal language model, training stage `Pretraining`, 80B total parameters, 3B activated parameters, 79B non-embedding parameters, hidden size 2048, 48 layers и native context 262 144.
-
-**VERIFIED FACT —** Model card описывает hybrid layout как `12 × (3 × (Gated DeltaNet → MoE) → 1 × (Gated Attention → MoE))`.
-
-**VERIFIED FACT —** Model card/config указывают 512 experts, 10 experts per token и 1 shared expert; config задаёт `num_experts=512`, `num_experts_per_tok=10`, `shared_expert_intermediate_size=512`.
-
-**VERIFIED FACT —** Config задаёт `Qwen3NextForCausalLM`, `model_type=qwen3_next`, `num_hidden_layers=48`, `hidden_size=2048`, `max_position_embeddings=262144`, BF16 и vocabulary size 151 936.
-
-**RISK —** Число total/activated parameters берётся из официального model card и API metadata; `config.json` не содержит самостоятельного поля total parameter count. Для training memory plan нужны отдельная проверка shard index и фактическая загрузка на H200.
-
-### Лицензионный caveat
-
-**VERIFIED FACT —** API metadata и card metadata на дату проверки указывали `apache-2.0` и ссылку <https://huggingface.co/Qwen/Qwen3-Coder-Next-Base/blob/main/LICENSE>.
-
-**VERIFIED FACT —** Файл `LICENSE` отсутствовал в API file list, а запрос pinned URL <https://huggingface.co/Qwen/Qwen3-Coder-Next-Base/resolve/1b6df59d5f75ab51edb9ad8cb3ea69c5d0aedd57/LICENSE> вернул HTTP 404 при проверке 2026-07-13.
-
-**RISK —** Metadata `apache-2.0` не заменяет текст лицензии и required notices. До скачивания весов, обучения, внутреннего распространения или выпуска derivative юридический владелец должен получить официальный license text, проверить применимость к exact revision и архивировать его вместе с notices.
-
-**EXPERIMENT REQUIRED —** License preflight должен повторно проверить pinned file tree/API и сохранить HTTP evidence. Изменение upstream после 2026-07-13 не должно молча менять юридическую запись уже выполненного run.
-
-## 2. Heavy teacher / quality tier
-
-**VERIFIED FACT —** Кандидат teacher: `Qwen/Qwen3-Coder-480B-A35B-Instruct`.
+**RISK —** Mutable `main` запрещён как training input. До любого скачивания в training registry фиксируются exact SHA, config/card/license snapshots и hashes всех shards.
 
 Официальные URL:
 
 - **VERIFIED FACT —** Model card: <https://huggingface.co/Qwen/Qwen3-Coder-480B-A35B-Instruct>
+- **VERIFIED FACT —** Raw model card: <https://huggingface.co/Qwen/Qwen3-Coder-480B-A35B-Instruct/raw/main/README.md>
 - **VERIFIED FACT —** Config: <https://huggingface.co/Qwen/Qwen3-Coder-480B-A35B-Instruct/blob/main/config.json>
 - **VERIFIED FACT —** Raw config: <https://huggingface.co/Qwen/Qwen3-Coder-480B-A35B-Instruct/raw/main/config.json>
 - **VERIFIED FACT —** Repository API metadata: <https://huggingface.co/api/models/Qwen/Qwen3-Coder-480B-A35B-Instruct>
 - **VERIFIED FACT —** File tree: <https://huggingface.co/Qwen/Qwen3-Coder-480B-A35B-Instruct/tree/main>
 
-**VERIFIED FACT —** Model card указывает 480B total / 35B activated, 62 layers, GQA 96 Q / 8 KV heads, 160 experts, 8 activated experts и native context 262 144.
+### Проверенные параметры foundation
 
-**VERIFIED FACT —** Config подтверждает `Qwen3MoeForCausalLM`, `model_type=qwen3_moe`, hidden size 6144, 62 layers, 160 experts, Top-8 и 262 144 positions.
+**VERIFIED FACT —** Model card определяет checkpoint как causal language model со стадиями `Pretraining & Post-training`, 480B total parameters, 35B activated parameters, 62 layers, GQA 96 Q heads / 8 KV heads и native context 262 144.
 
-**RISK —** Teacher URL использует mutable `main`, потому что в этом baseline закреплён только известный Base SHA. Teacher нельзя использовать в production generation run, пока его exact revision, license/notices, shard hashes и serving config не внесены в registry.
+**VERIFIED FACT —** Config задаёт `Qwen3MoeForCausalLM`, `model_type=qwen3_moe`, hidden size 6144, head dimension 128, 62 layers, 160 routed experts, Top-8, expert intermediate size 2560, vocabulary size 151 936, maximum positions 262 144 и `torch_dtype=bfloat16`.
 
-**EXPERIMENT REQUIRED —** Teacher остаётся кандидатом до измерения trajectory quality, verifier calibration, H200 throughput и cost per accepted example. Его upstream benchmark claims не являются результатами LÆTEX.
+**VERIFIED FACT —** Config задаёт `shared_expert_intermediate_size=0`; shared expert в этой архитектуре отсутствует.
+
+**VERIFIED FACT —** Отдельно выпущенный официальный `Qwen3-Coder-480B-A35B-Base` в проверенных official card, repository tree и поиске Hugging Face не идентифицирован. Прямой upstream E-01 поэтому является Instruct checkpoint.
+
+**RISK —** Total/activated parameter counts берутся из официального model card; config не содержит отдельного поля total parameter count. Memory plan требует shard-index audit и фактического H200 load/profile.
+
+### Лицензионный caveat
+
+**VERIFIED FACT —** Card metadata на дату проверки указывала `license: apache-2.0` и ссылку <https://huggingface.co/Qwen/Qwen3-Coder-480B-A35B-Instruct/blob/main/LICENSE>.
+
+**RISK —** Metadata `apache-2.0` не заменяет pinned license text и required notices. До скачивания весов, обучения, внутреннего распространения или выпуска derivative юридический владелец должен проверить применимость лицензии к exact revision и архивировать её вместе с notices.
+
+**EXPERIMENT REQUIRED —** License preflight должен повторно проверить pinned file tree/API и сохранить HTTP evidence. Изменение upstream после 2026-07-13 не должно молча менять юридическую запись уже выполненного run.
+
+### Политика адаптации
+
+**ENGINEERING HYPOTHESIS —** Broad CPT исключён по умолчанию, потому что foundation уже post-trained: такой run может стереть instruction/tool alignment.
+
+**ENGINEERING HYPOTHESIS —** Lineage: frozen BF16 S0 → identity/tool LoRA → verified BF16 merge M1 → enterprise Action SFT LoRA → merge M2 → preference → GRPO → BF16 master M4 → FP8 serving derivative после parity.
+
+**ENGINEERING HYPOTHESIS —** Internal MoE router и experts заморожены на начальных стадиях. Selective adaptation требует отдельного ablation gate.
+
+**EXPERIMENT REQUIRED —** Каждый BF16 merge проходит integrity и regression gates. FP8 derivative допускается к serving только после parity с BF16 M4.
+
+## 2. Историческая альтернативная ветвь
+
+**VERIFIED FACT —** `Qwen/Qwen3-Coder-Next-Base` 80B/3B был прежним design choice, но больше не является foundation E-01.
+
+**ENGINEERING HYPOTHESIS —** 80B/3B checkpoint может сохраняться только как исторически отвергнутая или отдельная alternative research branch; результаты этой ветви нельзя смешивать с lineage E-01.
+
+**RISK —** Документы, configs или artifacts, которые всё ещё называют 80B/3B checkpoint E-01 foundation, являются stale и не санкционируют training run.
 
 ## 3. NVIDIA H200
 

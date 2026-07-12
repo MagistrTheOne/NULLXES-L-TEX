@@ -1,100 +1,81 @@
 # RunPod-only compute architecture для LÆTEX E-01
 
-## 1. Область решения
+## 1. Foundation decision
 
-- **[VERIFIED FACT]** Единственный accelerator для E-01 — NVIDIA H200 SXM с 141 GB HBM на GPU. Другие GPU, смешанные кластеры и локальные model workloads запрещены.
-- **[VERIFIED FACT]** Multi-node workloads выполняются только в RunPod H200 Instant Clusters: 2–8 узлов по 8 GPU, то есть 16–64 H200; для большего масштаба требуется отдельное согласование с RunPod.
-- **[VERIFIED FACT]** RunPod документирует для H200 Instant Clusters inter-node fabric до 3200 Gbps и выделяет интерфейсы `ens1`–`ens8` для cluster traffic.
-- **[VERIFIED FACT]** Network Volume доступен для Pods только в Secure Cloud, подключается к Instant Cluster при создании и монтируется на каждом узле как `/workspace`.
-- **[RISK]** «До 3200 Gbps» — характеристика сервиса, а не гарантия NCCL throughput конкретного allocation. Перед дорогим run обязателен NCCL acceptance test.
-- **[VERIFIED FACT]** Локальная машина — только control plane: Git, declarative profiles, submission, просмотр обезличенных метрик и лёгкие unit tests. На ней не хранятся веса, optimizer states, training shards и inference cache; не выполняются inference, training, CPT, SFT, RL или teacher generation.
+- **[VERIFIED FACT]** Единственный foundation и production candidate: `Qwen/Qwen3-Coder-480B-A35B-Instruct`, 480B total / 35B activated, 62 layers, 160 experts, Top-8, native 262,144 context, BF16 upstream weights.
+- **[VERIFIED FACT]** Разделение 80B student / 480B teacher удалено. Тот же 480B checkpoint нельзя называть teacher: он является родителем LÆTEX.
+- **[RISK]** Отдельный critic допускается только отдельным архитектурным и бюджетным approval, с собственным checkpoint ID и lineage. По умолчанию critic отсутствует.
+- **[ENGINEERING HYPOTHESIS]** E-01 обучает LoRA/adapters и последовательно сливает их в BF16 masters; full-parameter 480B tuning не входит в E-01.
+- **[RISK]** Full-parameter 480B training потребует не менее 128 H200 и допускается только после optimizer/checkpoint memory proof; это нижняя гипотеза, не утверждение feasibility.
 
-## 2. Три изолированных контура
+## 2. Изолированные compute-контуры
 
-### 2.1 H200 training cluster
+### H200 training
 
-- **[ENGINEERING HYPOTHESIS]** Production multi-node default — H200 Instant Cluster с homogeneous 8-GPU nodes, NVLink/NVSwitch внутри узла и RunPod high-speed fabric между узлами.
-- **[ENGINEERING HYPOTHESIS]** Один 8×H200 Secure Cloud Pod допустим только для ограниченных adapter/preference/router jobs и release smoke, если allocation подтверждает HGX/NVSwitch topology; Phase 0 baseline использует minimum 16 H200, а CPT/GRPO scale остаётся multi-node Instant Cluster.
-- **[VERIFIED FACT]** Оркестратор получает `NODE_RANK`, `WORLD_SIZE`, `MASTER_ADDR`/`PRIMARY_ADDR` и другие distributed environment variables от Instant Cluster.
-- **[ENGINEERING HYPOTHESIS]** Training stack — pinned OCI image, Megatron-Core/Megatron-LM + Transformer Engine; DeepSpeed допустим только после phase-specific parity test.
-- **[RISK]** Нельзя считать Ethernet-интерфейс `eth0` training fabric. NCCL должен быть привязан к подтверждённым `ens*` интерфейсам.
-- **[RISK]** Публичная документация RunPod подтверждает high-speed `ens*` fabric и aggregate figure до 3200 Gbps, но не доказывает InfiniBand protocol/topology конкретного allocation.
-- **[VERIFIED FACT]** E-01 требует InfiniBand между узлами; allocation без письменной attestation InfiniBand и успешного NCCL/IB acceptance test является NO-GO.
+- **[VERIFIED FACT]** Только NVIDIA H200 SXM 141 GB, homogeneous HGX nodes по 8 GPU, NVLink/NVSwitch внутри узла и InfiniBand между узлами.
+- **[ENGINEERING HYPOTHESIS]** Baseline и 8–16K LoRA: minimum 16 / recommended 32 H200. Для 32–64K LoRA: recommended 64. Preference: 32/64. GRPO: 64/128.
+- **[RISK]** Стандартный RunPod Instant Cluster ограничен 16–64 GPU; 128 H200 для GRPO требует заранее подтверждённой capacity через RunPod sales.
+- **[ENGINEERING HYPOTHESIS]** Pinned OCI image + Megatron-Core/Megatron-LM + Transformer Engine; DeepSpeed только после phase parity.
 
-### 2.2 H200 inference/evaluation cluster
+### H200 inference/evaluation
 
-- **[ENGINEERING HYPOTHESIS]** Baseline, rollout workers, release evaluation и offline teacher inference используют отдельные H200 allocations; training и serving не делят GPU.
-- **[VERIFIED FACT]** Teacher Qwen3-Coder-480B-A35B-Instruct имеет 480B total / 35B activated parameters и применяется только offline для generation, critique, distillation labels и hard-case evaluation.
-- **[RISK]** Teacher запрещён как live runtime и не включается в пользовательский request path.
+- **[ENGINEERING HYPOTHESIS]** BF16 480B weights занимают около 960 GB до runtime overhead. Поэтому BF16 minimum 16 / recommended 32 H200; 8 H200 физически слишком тесны для release qualification.
+- **[ENGINEERING HYPOTHESIS]** FP8 candidate: minimum 8 / recommended 16 H200 только после BF16-to-FP8 load, numerical и LÆTEX-Bench parity.
+- **[VERIFIED FACT]** Training, rollout serving и release evaluation используют раздельные allocations.
 
-### 2.3 Local control plane
+### Local control plane
 
-- **[VERIFIED FACT]** Control plane хранит только конфигурации, run IDs, checksums, агрегированные метрики и ссылки на registry objects.
-- **[RISK]** API keys, cloud credentials и registry credentials не записываются в Git/YAML; они инжектируются через RunPod secrets или внешний secrets manager.
+- **[VERIFIED FACT]** Локально разрешены Git, профили, job submission, агрегированные метрики и лёгкие unit tests без весов.
+- **[VERIFIED FACT]** Локальные inference, training, LoRA, merge, CPT/DAPT, RL и generation запрещены.
 
-## 3. Storage topology
+## 3. Staged BF16 lineage
+
+| ID | Родитель | Изменение | Результат |
+|---|---|---|---|
+| `U0` | upstream | Immutable BF16 foundation | Source master |
+| `M1` | `U0` | Retained `A1` identity/tool LoRA, затем BF16 merge | Stage 1 master |
+| `M2` | `M1` | Retained `A2` Enterprise Action SFT LoRA, затем BF16 merge | Stage 2 master |
+| `M3` | `M2` | Retained `A3` DPO/IPO LoRA, затем BF16 merge | Stage 3 master |
+| `M4` | `M3` | Retained `A4` GRPO LoRA, затем BF16 merge | Release BF16 master |
+
+- **[VERIFIED FACT]** Каждый `A1..A4`, его pre-merge parent, merge manifest и post-merge eval сохраняются.
+- **[ENGINEERING HYPOTHESIS]** Merge выполняется BF16-совместимым детерминированным job, затем load test и полный protected regression gate.
+- **[VERIFIED FACT]** Каждая стадия начинает новый optimizer/scheduler; optimizer state не переносится через merge boundary.
+- **[VERIFIED FACT]** FP8 — только производный inference export от `M4`; FP8 никогда не является training или merge parent.
+- **[RISK]** Base MoE router и 160 routed experts frozen в Phases 1–4. Их разморозка требует отдельного ablation и не является E-01 default.
+
+## 4. Storage и checkpoints
 
 | Уровень | Назначение | Политика |
 |---|---|---|
-| RunPod Network Volume `/workspace` | staging datasets, tokenizer/cache, active checkpoints, dataloader working set, temporary rollout artifacts | **[VERIFIED FACT]** Persistent independently of compute; используется как рабочий набор, но не как единственная копия. |
-| Local NVMe/container scratch | per-rank cache, temporary compilation artifacts, transient activation spill только если phase profile разрешает | **[RISK]** Ephemeral; никогда не является registry. |
-| External encrypted object store | immutable datasets, manifests, source checkpoints, promoted checkpoints, eval bundles, audit logs | **[ENGINEERING HYPOTHESIS]** Durable source of truth с versioning, object lock, server-side encryption и separate service identity per environment. |
+| `/workspace` Network Volume | active shards, adapters, rollout queues, staging checkpoints | Working set, не source of truth |
+| Node-local scratch | cache/compilation/transient artifacts | Ephemeral, checksum-bound |
+| External encrypted object store | `U0`, `A1..A4`, `M1..M4`, optimizer states, datasets, evidence | Versioned immutable registry |
 
-- **[VERIFIED FACT]** Network Volume не заменяет durable registry; RunPod предупреждает, что volume может быть утрачен при неоплате хранения.
-- **[ENGINEERING HYPOTHESIS]** Каждый run сначала materializes immutable manifest из object store в `/workspace/runs/<run-id>/inputs`, проверяет SHA-256/BLAKE3, а после checkpoint/eval атомарно публикует manifest и объекты обратно.
-- **[RISK]** Concurrent writers к одному volume могут повредить данные. Один run получает один write namespace; promotion выполняет единственный registry writer.
-- **[EXPERIMENT REQUIRED]** Измерить sustained read throughput Network Volume на packed-shard workload; если dataloader starvation >2% step time, добавить node-local read-through cache, не меняя durable topology.
+- **[ENGINEERING HYPOTHESIS]** Один run — один write namespace; promotion выполняет единственный registry writer после checksum и resume/load test.
+- **[RISK]** Merge без adapter retention, parent hash, tokenizer/template hash или post-merge parity считается недействительным.
 
-## 4. Security и tenancy
+## 5. Network acceptance
 
-- **[VERIFIED FACT]** Используется только RunPod Secure Cloud; Community Cloud запрещён.
-- **[ENGINEERING HYPOTHESIS]** Отдельные RunPod projects/accounts, Network Volumes, object-store prefixes, KMS keys и service identities для `dev`, `eval`, `train`, `release`.
-- **[RISK]** Secure Cloud и container isolation не дают автоматической tenant-level data governance. Клиентские данные не поступают в общий corpus без explicit opt-in и отдельного lineage record.
-- **[ENGINEERING HYPOTHESIS]** Egress deny-by-default после materialization; allowlist только registry, telemetry sink и approved package mirror.
-- **[ENGINEERING HYPOTHESIS]** Short-lived credentials, no SSH by default, no public notebook, immutable image digest, SBOM, signature verification и audit event на submit/start/checkpoint/promote/terminate.
-- **[EXPERIMENT REQUIRED]** До Phase 1 провести threat model и доказать, что logs, crash dumps и telemetry не содержат prompts, source code, tokens или secrets.
+- **[RISK]** Публичное «до 3200 Gbps» и наличие `ens*` не доказывают InfiniBand конкретного allocation.
+- **[VERIFIED FACT]** Перед каждым run нужны письменная provider attestation InfiniBand, topology inventory, NCCL test, no-`eth0` fallback, 141 GB HBM/rank и zero XID/ECC.
+- **[EXPERIMENT REQUIRED]** Для training дополнительно: distributed loss/gradient parity; для GRPO: rollout/update sync и sandbox containment; для release: identical bundle hashes.
 
-## 5. Declarative profile contract
+## 6. Profile contract
 
-Файлы `infra/runpod/profiles/*.yaml` являются документационными профилями, а не provisioning manifests.
+- **[VERIFIED FACT]** Все `infra/runpod/profiles/*.yaml` используют `laetex.runpod.profile/v2` и одинаковые top-level keys.
+- **[VERIFIED FACT]** `world_size = TP × PP × CP × DP`. `EP` не умножается второй раз; его group semantics проходят отдельную Megatron validation.
+- **[ENGINEERING HYPOTHESIS]** EP=1 в E-01 Phases 0–4, потому что upstream router/experts frozen. Top-2 domain-adapter router Phase 5 — иной механизм, не base-MoE EP.
+- **[VERIFIED FACT]** Каждый профиль задаёт network attestation, working/durable storage, checkpoint input/output/cadence/retention, wall-clock как hypothesis, exact metric и economic gate.
 
-- **[VERIFIED FACT]** Они не вызывают RunPod API и не содержат secrets.
-- **[ENGINEERING HYPOTHESIS]** Общая schema version — `laetex.runpod.profile/v1`; обязательные поля: `name`, `phase`, `classification`, `platform`, `compute`, `parallelism`, `network`, `storage`, `checkpoint`, `wall_clock`, `metrics`, `stop_conditions`, `economic_gate`, `artifacts`, `validation`.
-- **[VERIFIED FACT]** `wall_clock` содержит собственный `tag: ENGINEERING_HYPOTHESIS`; оценка не является измеренным runtime.
-- **[VERIFIED FACT]** Верхнеуровневый `classification` является epistemic tag для всех не переопределённых полей профиля; элементы `assumptions` обязаны иметь собственный `tag`.
-- **[RISK]** Числа GPU и parallelism — budget envelope, а не доказанная работоспособность. Run-specific config создаётся только после dry validation и smoke run на H200.
+## 7. Security и tenancy
 
-### Validation notes
+- **[VERIFIED FACT]** Только RunPod Secure Cloud; Community Cloud запрещён.
+- **[ENGINEERING HYPOTHESIS]** Раздельные projects, volumes, object prefixes, KMS keys и short-lived identities для `dev/eval/train/release`.
+- **[RISK]** Tenant data не попадают в общий corpus без explicit opt-in lineage; logs, crash dumps и telemetry проверяются на source/secrets leakage.
 
-Перед submission CI должен отклонять профиль, если:
+## 8. Source snapshot
 
-1. **[VERIFIED FACT]** `gpu.model != NVIDIA H200 SXM` или `gpu.hbm_gb != 141`.
-2. **[VERIFIED FACT]** указан Community Cloud, локальный inference/training или иной accelerator.
-3. **[ENGINEERING HYPOTHESIS]** `recommended_gpus > 8` без `deployment.recommended: instant-cluster`; single-node minimum требует `deployment.minimum: secure-cloud-pod`.
-4. **[ENGINEERING HYPOTHESIS]** `recommended_gpus` не кратно восьми либо Instant Cluster выходит за документированный диапазон 16–64 GPU.
-5. **[VERIFIED FACT]** отсутствуют Network Volume working set и external encrypted object-store registry.
-6. **[VERIFIED FACT]** присутствует literal credential, token, private endpoint с embedded auth или secret value.
-7. **[ENGINEERING HYPOTHESIS]** `TP × PP × CP × DP != world_size`; `EP` дополнительно проверяется на совместимость с Megatron expert/data parallel groups.
-8. **[ENGINEERING HYPOTHESIS]** нет exact metric, stop condition, checkpoint cadence, artifact manifest или economic gate.
-9. **[VERIFIED FACT]** teacher указан в online/live serving path.
-
-## 6. Cluster acceptance gate
-
-- **[EXPERIMENT REQUIRED]** На каждом новом allocation выполнить topology discovery, InfiniBand device/link attestation, GPU/HBM check, image digest check, NCCL all-reduce/all-to-all, Network Volume read/write test и object-store round-trip checksum.
-- **[ENGINEERING HYPOTHESIS]** Acceptance: 0 GPU/XID/ECC errors; все ranks видимы; 141 GB HBM reported; NCCL без fallback на `eth0`; collective bandwidth не ниже 80% от согласованного внутреннего baseline; checksum mismatch = 0.
-- **[RISK]** Не запускать платную training phase, если acceptance gate не пройден или RunPod capacity не зарезервирована на ожидаемый wall-clock + checkpoint buffer.
-
-## 7. Checkpoint lifecycle
-
-1. **[ENGINEERING HYPOTHESIS]** Distributed checkpoint пишется в run-scoped staging на `/workspace`.
-2. **[VERIFIED FACT]** Checkpoint считается валидным только после успешного load/resume test.
-3. **[ENGINEERING HYPOTHESIS]** Registry writer загружает shards, optimizer/RNG/data-cursor state и manifest в encrypted object store.
-4. **[ENGINEERING HYPOTHESIS]** Promotion pointer обновляется только после checksum и eval gate; partial checkpoints имеют TTL.
-5. **[RISK]** Adapter, base checkpoint, tokenizer, chat template и tool schema версионируются как единый release bundle; несовместимое смешивание запрещено.
-
-## 8. Source-of-truth snapshot
-
-- **[VERIFIED FACT]** Qwen3-Coder-Next-Base model card: Apache-2.0, pretraining-only, 80B total / 3B activated, 48 layers, 512 routed experts, 10 activated + 1 shared, native 262,144 context.
-- **[VERIFIED FACT]** Qwen3-Coder-480B-A35B-Instruct model card: 480B total / 35B activated, 62 layers, 160 experts, 8 activated, native 262,144 context.
-- **[RISK]** Model cards и RunPod service limits меняются. Перед каждым release зафиксировать URL, retrieval date, content hash и расхождения с этой документацией.
+- **[VERIFIED FACT]** Model card и `config.json` проверены 2026-07-13: 480B/35B, 62 layers, 96Q/8KV, 160 experts, 8 active, BF16, 262,144 context; config указывает `shared_expert_intermediate_size: 0`.
+- **[RISK]** License/notices и deployment compatibility должны фиксироваться отдельным release artifact; параметры и RunPod limits перепроверяются перед reservation.
 

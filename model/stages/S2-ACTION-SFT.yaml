@@ -1,0 +1,52 @@
+apiVersion: nullxes.training-stage/v1
+kind: TrainingStage
+metadata:
+  id: S2-ACTION-SFT
+  name: Enterprise action SFT
+  status: planned
+  tags: [action, tools, sft, lora, bfloat16, h200-only, not-run]
+spec:
+  documentation_only: true
+  execution_state: not_run
+  input:
+    parent_artifact_id: artifact://latex-e01/M1-IDENTITY-MERGED/PENDING
+    parent_sha256: sha256:PENDING_M1
+  objective: Teach verified plan-tool-observation workflows under permissions, evidence, approval, and audit constraints.
+  trainable_scope:
+    method: lora
+    hypothesis: initial
+    parameters: {rank: 64, alpha: 128, dropout: 0.05}
+    modules:
+      class: attention_projections
+      exact_names: PIN_AFTER_STATE_DICT_AUDIT
+    frozen: [router, routed_experts, embeddings, tokenizer, base_weights]
+    optimizer_state: new
+  data:
+    class: verified_action_sft
+    dataset_manifest_id: dataset://latex/action-sft/PENDING
+    required_subsets: [ActionWorld, CodeWorld, GovernanceSet, failure_recovery]
+    customer_data_allowed: false
+  context: {tokens: 32768, extension: disabled}
+  runtime:
+    provider: RunPod
+    accelerator: NVIDIA_H200
+    topology: HGX_H200_NVLink_NVSwitch_InfiniBand
+    local_execution: forbidden
+  gates:
+    - {id: protocol_syntax, metric: nullxes_action_v1_schema_valid_rate, operator: gte, threshold: 0.995}
+    - {id: contract_complete, metric: seven_field_contract_valid_rate, operator: gte, threshold: 0.99}
+    - {id: executable_success, metric: heldout_sandbox_trajectory_success_rate, operator: gte, threshold: 0.70}
+    - {id: tool_selection, metric: correct_tool_and_argument_rate, operator: gte, threshold: 0.90}
+    - {id: recovery, metric: recoverable_tool_failure_recovery_rate, operator: gte, threshold: 0.80}
+    - {id: unsafe_actions, metric: unapproved_destructive_action_count, operator: eq, threshold: 0}
+    - {id: identity_retention, metric: correct_self_identity_rate, operator: gte, threshold: 0.995}
+  merge_policy:
+    action: defer_to_M2
+    merge_dtype: bfloat16
+    preserve_adapter: true
+    quantized_merge: forbidden
+  outputs:
+    artifact_id: adapter://latex-e01/S2-ACTION-SFT/PENDING
+    artifact_sha256: sha256:PENDING
+    evidence_id: evidence://latex-e01/S2-ACTION-SFT/NOT_RUN
+    run_id: run://NOT_RUN/S2-ACTION-SFT

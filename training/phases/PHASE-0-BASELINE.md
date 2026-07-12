@@ -1,11 +1,11 @@
-# Phase 0 — Baseline до обучения
+# Phase 0 — Baseline direct 480B foundation
 
 ## Input, objective, output
 
-- **[VERIFIED FACT] Input:** immutable Qwen3-Coder-Next-Base snapshot, неизменённый tokenizer, frozen LÆTEX-Bench draft, private held-out tasks, deterministic graders и cost schema.
-- **[EXPERIMENT REQUIRED] Objective:** измерить исходные quality, latency, tool reliability, safety и cost до любого изменения весов.
-- **[VERIFIED FACT] Output:** signed baseline manifest, per-task evidence, failed-task taxonomy, latency/cost distributions и contamination audit.
-- **[RISK]** Нельзя использовать результат teacher или model judge как замену executable grader.
+- **[VERIFIED FACT] Input:** immutable BF16 `Qwen/Qwen3-Coder-480B-A35B-Instruct` (`U0`), unchanged tokenizer/chat template hash, frozen LÆTEX-Bench, private holdouts и deterministic graders.
+- **[EXPERIMENT REQUIRED] Objective:** измерить quality, latency, tool reliability, safety, identity leakage и cost до weight changes.
+- **[VERIFIED FACT] Output:** signed baseline manifest, evidence, failure taxonomy, latency/cost distributions и contamination audit.
+- **[RISK]** Это foundation/production candidate, не teacher. Model judge не заменяет executable grader.
 
 ## Procedure
 
@@ -26,13 +26,13 @@
 | Поле | Спецификация |
 |---|---|
 | Objective | **[EXPERIMENT REQUIRED]** Воспроизводимая baseline inference/evaluation без weight updates. |
-| Minimum H200 | **[ENGINEERING HYPOTHESIS]** 16× H200 SXM 141 GB, два 8-GPU HGX-узла для baseline replay. |
-| Recommended H200 | **[ENGINEERING HYPOTHESIS]** 32× H200 SXM 141 GB, четыре HGX-узла для parallel replay. |
-| Parallelism | **[ENGINEERING HYPOTHESIS]** Min TP=4, PP=1, EP=1, CP=1, DP=4; rec DP=8; независимые TP replicas. |
-| VRAM | **[VERIFIED FACT]** 141 GB HBM/GPU; BF16 reference weights; KV/cache budget измеряется на target context. |
+| Minimum H200 | **[ENGINEERING HYPOTHESIS]** 16× H200 SXM 141 GB, два HGX-узла после BF16 load/memory proof. |
+| Recommended H200 | **[ENGINEERING HYPOTHESIS]** 32× H200 SXM 141 GB, четыре узла, две replicas. |
+| Parallelism | **[ENGINEERING HYPOTHESIS]** Min world=16: TP=8, PP=2, CP=1, DP=1, EP=1; rec world=32: TP=8, PP=2, CP=1, DP=2, EP=1. |
+| VRAM | **[ENGINEERING HYPOTHESIS]** BF16 weights ≈960 GB before runtime overhead; 16 H200 is minimum, 32 adds replica/headroom. |
 | Network | **[VERIFIED FACT]** NVLink/NVSwitch внутри узла. **[RISK]** Для recommended multi-node требуется attested InfiniBand на RunPod `ens*`; публичные 3200 Gbps сами по себе этого не доказывают. |
 | Storage | **[VERIFIED FACT]** `/workspace` Network Volume для working set; external encrypted object store для frozen inputs/evidence. |
-| Checkpoint | **[VERIFIED FACT]** Weight checkpoints не создаются; сохраняются resumable task ledger и eval artifacts каждые 15 минут. |
+| Checkpoint | **[VERIFIED FACT]** `U0` immutable; weight checkpoints не создаются; task ledger/evidence каждые 15 минут. |
 | Estimated wall-clock | **[ENGINEERING HYPOTHESIS]** 12–36 часов для первого полного suite; уточнить после 100-task pilot. |
 | Exact metric | **[VERIFIED FACT]** VETCR, Wilson 95% CI для unweighted rate, replay mismatch=0, audit completeness=100%. |
 | Stop/economic justification | **[ENGINEERING HYPOTHESIS]** Full run оправдан только после frozen graders; 32 GPU — если wall-clock saving дешевле задержки решения. |

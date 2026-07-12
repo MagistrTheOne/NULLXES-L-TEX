@@ -3,15 +3,29 @@
 > Статус: source-of-truth scaffold  
 > Дата фиксации источников: 2026-07-13
 
+**VERIFIED FACT —** Компания: NULLXES. Developer / CEO: [@MagistrTheOne](https://github.com/MagistrTheOne). Контакты: [ceo@nullxes.com](mailto:ceo@nullxes.com), <https://nullxes.com>.
+
 **ENGINEERING HYPOTHESIS —** LÆTEX — Enterprise Action Model: производная enterprise-модель, которая получает структурированное состояние организации, действует через контролируемые инструменты и возвращает проверяемый результат — изменение, тесты, evidence, риски и audit trail. В E-01 model workloads разворачиваются только в RunPod Secure Cloud на H200; on-prem/VPC клиента остаётся будущей product target и не заявляется как реализованный deployment.
 
-**VERIFIED FACT —** Базовый checkpoint проекта зафиксирован как [`Qwen/Qwen3-Coder-Next-Base`](https://huggingface.co/Qwen/Qwen3-Coder-Next-Base) с revision `1b6df59d5f75ab51edb9ad8cb3ea69c5d0aedd57`. На дату проверки официальный model card указывает 80B параметров всего, 3B активных, 48 слоёв, 512 routed experts, 10 активных experts, 1 shared expert и нативный контекст 262 144 токена.
+**VERIFIED FACT —** Прямой foundation E-01 — [`Qwen/Qwen3-Coder-480B-A35B-Instruct`](https://huggingface.co/Qwen/Qwen3-Coder-480B-A35B-Instruct): causal LM, прошедшая pretraining и post-training, 480B параметров всего / 35B активных, 62 слоя, hidden size 6144, GQA 96Q/8KV, head dimension 128, 160 routed experts, Top-8, без shared expert (`shared_expert_intermediate_size=0`), expert intermediate size 2560, vocabulary 151 936, native context 262 144 и BF16.
+
+**VERIFIED FACT —** На дату проверки в официальных источниках не идентифицирован отдельно выпущенный `Qwen3-Coder-480B-A35B-Base`; upstream E-01 поэтому является Instruct checkpoint. Exact upstream SHA ещё не верифицирован и обозначается `PIN_BEFORE_TRAINING`, а не выдуманным revision.
+
+**ENGINEERING HYPOTHESIS —** Broad CPT по умолчанию исключён: для уже post-trained Instruct checkpoint он создаёт высокий риск потери instruction/tool alignment. Допустимы только узкие, gated ablations после baseline evaluation.
+
+**ENGINEERING HYPOTHESIS —** Lineage E-01: frozen BF16 S0 → identity/tool LoRA → verified BF16 merge M1 → enterprise Action SFT LoRA → merge M2 → preference optimization → GRPO → BF16 master M4 → FP8 serving derivative только после parity-проверки.
+
+**ENGINEERING HYPOTHESIS —** Internal MoE router и experts на первых стадиях заморожены. Их adaptation разрешается только отдельным experiment gate после доказанного adapter ceiling.
+
+**VERIFIED FACT —** `Qwen/Qwen3-Coder-Next-Base` 80B/3B больше не является foundation E-01. Он может упоминаться только как исторически отвергнутая или альтернативная ветвь.
 
 **VERIFIED FACT —** Репозиторий описывает LÆTEX честно: это proprietary post-trained enterprise action model, built from open-weight foundations. Проект не заявляет pretraining from zero и не скрывает происхождение checkpoint в internal model card и юридических материалах.
 
 **VERIFIED FACT —** Обучение и тяжёлый inference разрешены только на NVIDIA H200 в RunPod. Локальная машина — control/documentation plane без весов модели, датасетов клиента и training workloads.
 
-**RISK —** Метаданные Hugging Face для Base указывают `apache-2.0`, но связанный файл `LICENSE` отсутствовал и возвращал 404 при проверке revision 2026-07-13. До загрузки весов, обучения и распространения производного checkpoint юридическая команда обязана получить и архивировать применимый текст лицензии и notices; metadata-tag сам по себе недостаточен.
+**VERIFIED FACT —** Официальная card metadata для прямого upstream E-01 указывает Apache-2.0.
+
+**RISK —** До загрузки весов, обучения и распространения derivative юридическая команда обязана закрепить exact revision, hashes, текст лицензии и notices. Metadata-tag без архивированного source manifest недостаточен.
 
 ## Границы текущего репозитория
 

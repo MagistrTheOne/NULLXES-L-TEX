@@ -8,7 +8,11 @@
 
 **ENGINEERING HYPOTHESIS —** LÆTEX должен быть Enterprise Action Model, а не general-purpose chatbot: принимать задачу вместе с разрешённым состоянием предприятия, планировать изменение, действовать через типизированные tools и завершать работу проверяемым результатом.
 
-**VERIFIED FACT —** Foundation для E-01 — производный от `Qwen/Qwen3-Coder-Next-Base` checkpoint. Формулировка для model card: “LÆTEX E-01 is a proprietary post-trained enterprise action model built from the open-weight Qwen3-Coder-Next-Base foundation.”
+**VERIFIED FACT —** Прямой foundation E-01 — `Qwen/Qwen3-Coder-480B-A35B-Instruct`. Формулировка для model card: “LÆTEX E-01 is a proprietary post-trained enterprise action model built from the open-weight Qwen3-Coder-480B-A35B-Instruct foundation.”
+
+**VERIFIED FACT —** Официальный отдельно выпущенный 480B Base checkpoint в проверенных источниках не идентифицирован. Upstream уже прошёл pretraining и post-training.
+
+**ENGINEERING HYPOTHESIS —** Broad CPT исключён из default E-01 recipe из-за риска разрушить instruction, coding-agent и tool-use alignment upstream Instruct.
 
 **RISK —** Нельзя заявлять, что E-01 pretrained from zero, архитектурно независим от Qwen или универсально превосходит frontier-модели. Такие формулировки фактически неверны до появления независимого pretraining run и воспроизводимых сравнений.
 
@@ -60,19 +64,25 @@
 
 **ENGINEERING HYPOTHESIS —** Weight serving, teacher generation и evaluation workers разворачиваются как разные pools с отдельными credentials, network policy, autoscaling policy и cost attribution.
 
-**RISK —** Teacher 480B-A35B существенно тяжелее Base и не должен становиться default live runtime без подтверждённой экономики и capacity plan.
+**RISK —** Прямой 480B/35B runtime требует отдельного H200 capacity plan. Default serving запрещён до подтверждения memory fit, throughput, latency и cost per verified task.
 
 ## 4. Пять архитектурных planes
 
 ### 4.1 Foundation Plane
 
-**VERIFIED FACT —** Base revision: `Qwen/Qwen3-Coder-Next-Base@1b6df59d5f75ab51edb9ad8cb3ea69c5d0aedd57`.
+**VERIFIED FACT —** Upstream E-01: `Qwen/Qwen3-Coder-480B-A35B-Instruct@PIN_BEFORE_TRAINING`. Placeholder означает, что exact SHA ещё не верифицирован; training с mutable `main` запрещён.
 
-**VERIFIED FACT —** Официальные card/config фиксируют causal LM, 80B total / 3B activated, 48 layers, hybrid Gated DeltaNet + gated attention layout, 512 routed experts, Top-10, one shared expert и 262 144 context.
+**VERIFIED FACT —** Официальные card/config фиксируют causal LM, training stage `Pretraining & Post-training`, 480B total / 35B activated, 62 layers, hidden size 6144, GQA 96Q/8KV, head dimension 128, 160 routed experts, Top-8, no shared expert (`shared_expert_intermediate_size=0`), expert intermediate size 2560, vocabulary 151 936, native context 262 144, BF16 и Apache-2.0.
 
-**ENGINEERING HYPOTHESIS —** E-01 сохраняет tokenizer и базовую sparse architecture; capability overwrite выполняется CPT/SFT/preference/RL, а не несовместимой заменой vocabulary.
+**ENGINEERING HYPOTHESIS —** E-01 сохраняет tokenizer и sparse architecture. Internal router и experts первоначально заморожены; identity/tool и enterprise behavior вводятся LoRA, SFT, preference optimization и executable GRPO.
 
-**RISK —** Identity overwrite может вызвать catastrophic forgetting coding capability. Каждый post-training checkpoint должен проходить regression suite относительно pinned Base.
+**ENGINEERING HYPOTHESIS —** Канонический lineage: frozen BF16 S0 → identity/tool LoRA → verified BF16 merge M1 → enterprise Action SFT LoRA → merge M2 → preference → GRPO → BF16 master M4 → FP8 serving derivative после parity.
+
+**EXPERIMENT REQUIRED —** Каждый merge проходит weight integrity, held-out coding, tool grammar, identity, governance и safety regression относительно frozen S0; FP8 не получает release status без BF16 parity.
+
+**RISK —** Broad CPT или раннее изменение router/experts может вызвать alignment loss, expert drift и catastrophic forgetting coding capability.
+
+**VERIFIED FACT —** `Qwen/Qwen3-Coder-Next-Base` 80B/3B не является E-01 foundation и допустим только как исторически отвергнутая/альтернативная branch.
 
 ### 4.2 LÆTEX Adapter-MoE Plane
 
@@ -157,7 +167,7 @@ observed_delta_t = {changed_assets, test_results, side_effects,
 - dataset manifest с source, license/consent, hashes, PII status, transforms и split;
 - immutable container image digest и dependency lock;
 - training/eval config, code revision, random seeds и environment manifest;
-- Base revision и hashes всех входных model shards;
+- upstream revision (`PIN_BEFORE_TRAINING` до верификации) и hashes всех входных model shards;
 - checkpoints, optimizer states, adapter/router artifacts и signatures;
 - metrics, raw grader outputs, failure traces и benchmark task version;
 - model card, license/notices bundle, release decision и rollback pointer;

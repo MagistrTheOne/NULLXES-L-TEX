@@ -2,6 +2,8 @@
 
 ## 1. Область действия
 
+- **[VERIFIED FACT]** Direct foundation E-01 — `Qwen/Qwen3-Coder-480B-A35B-Instruct`; 80B Base и same-model teacher отсутствуют в release lineage.
+- **[VERIFIED FACT]** Upstream foundation уже post-trained; broad CPT исключён по умолчанию.
 - **[VERIFIED FACT]** Этот документ определяет обязательные условия promotion LÆTEX E-01 в enterprise release candidate и production release.
 - **[VERIFIED FACT]** Все gates являются conjunctive: провал одного hard gate означает NO-GO.
 - **[VERIFIED FACT]** Результат `CONDITIONAL GO` разрешает только дальнейшее R&D и не разрешает production deployment.
@@ -18,9 +20,20 @@
 - **[RISK]** Изменение любого hashed artifact, threshold или exclusion rule создаёт новую baseline version и обнуляет счётчик clean runs.
 - **[VERIFIED FACT]** PASS: подписи валидны, все artifacts доступны из registry, restore dry-run успешен. FAIL: отсутствует hash, owner, lineage, artifact или pre-registered threshold.
 
+### Gate G0.1 — staged lineage and BF16 merge
+
+- **[VERIFIED FACT]** Manifest фиксирует `S0` upstream, `M1` identity, `M2` action SFT, `M3` preference и `M4` GRPO; неисполненные стадии имеют status `not_started`, а не фиктивный result.
+- **[VERIFIED FACT]** Обязательный порядок initial E-01: attention-only identity LoRA M1 → verify → merge в BF16 parent → fresh optimizer → action SFT M2.
+- **[VERIFIED FACT]** Merge parent обязан быть BF16. FP8/INT4 parent, quantized demerge или training от final-serving candidate запрещены.
+- **[VERIFIED FACT]** До merge сохраняются adapter weights, adapter config, BF16 parent, merge recipe и immutable hashes; после merge фиксируются merged hash и numerical verification report.
+- **[VERIFIED FACT]** Promotion merge требует identity `0/10 000`, tool gate, coding regression `<=2 pp`, regression suite и pre/post-merge parity в frozen tolerance.
+- **[VERIFIED FACT]** Новый stage использует fresh optimizer/scheduler state; перенос optimizer state через merge запрещён.
+- **[RISK]** Отсутствие любого lineage artifact или gate report делает merged checkpoint непроверяемым и означает FAIL.
+- **[EXPERIMENT REQUIRED]** M3 preference и M4 GRPO допускаются позднее только после signed M2 evidence; никаких результатов этих стадий пока не заявлено.
+
 ## 3. Gate G1 — RunPod H200-only compute boundary
 
-- **[VERIFIED FACT]** Training, fine-tuning, RL, teacher generation, candidate inference и release evaluation выполняются только на выделенной инфраструктуре RunPod NVIDIA H200.
+- **[VERIFIED FACT]** Training, fine-tuning, RL, candidate inference, release evaluation и любая отдельно одобренная future critic generation выполняются только на выделенной инфраструктуре RunPod NVIDIA H200.
 - **[VERIFIED FACT]** Multi-GPU training использует H200 HGX с NVLink/NVSwitch внутри узла.
 - **[EXPERIMENT REQUIRED]** До запуска конкретный multi-node RunPod allocation обязан предоставить проверяемую attestation InfiniBand/high-bandwidth fabric и пройти NCCL collective acceptance.
 - **[RISK]** Внешняя документация RunPod не подтверждает protocol, topology или sustained throughput конкретного allocation; allocation без attestation и acceptance является NO-GO.

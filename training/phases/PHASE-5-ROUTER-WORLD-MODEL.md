@@ -2,10 +2,11 @@
 
 ## Input, objective, output
 
-- **[VERIFIED FACT] Input:** accepted policy, eight domain adapter packs, shared Evidence/Policy adapter, task/state metadata, versioned state/action/outcome traces и deterministic World Model V0.
+- **[VERIFIED FACT] Input:** frozen `M4` BF16 policy, eight domain adapter packs, shared Evidence/Policy adapter, task/state metadata, traces и deterministic World Model V0.
 - **[ENGINEERING HYPOTHESIS] Objective:** выбрать Top-2 domain adapters с audit trail и, условно, обучить compact 1.5–3B transition model, превосходящий V0.
-- **[VERIFIED FACT] Output:** calibrated router, route explanations, adapter compatibility matrix, World Model V1 checkpoint либо signed V1 no-go.
+- **[VERIFIED FACT] Output:** independent calibrated adapter router, route explanations, compatibility matrix и World Model V1 либо signed no-go; ничего не сливается в `M4`.
 - **[RISK]** Adapter router — не base MoE router; их losses, expert IDs и audit semantics нельзя смешивать.
+- **[VERIFIED FACT]** Upstream base router и 160 routed experts остаются immutable policy weights.
 
 ## Router program
 
@@ -35,10 +36,10 @@
 | Minimum H200 | **[ENGINEERING HYPOTHESIS]** 8× H200 SXM 141 GB, один Secure Cloud HGX Pod. |
 | Recommended H200 | **[ENGINEERING HYPOTHESIS]** 32× H200 SXM 141 GB, 4 узла для parallel ablations. |
 | Parallelism | **[ENGINEERING HYPOTHESIS]** Router/V1 min TP=1, PP=1, EP=1, CP=1, DP=8; rec V1 TP=2, DP=16; PP/EP/CP=1. |
-| VRAM | **[VERIFIED FACT]** 141 GB/GPU; router и V1 не требуют 80B full optimizer residency, но base-policy route eval выполняется отдельными inference replicas. |
+| VRAM | **[VERIFIED FACT]** 141 GB/GPU; router/V1 не требуют 480B optimizer residency; full `M4` route eval выполняется отдельным 16/32-H200 inference allocation. |
 | Network | **[VERIFIED FACT]** NVLink/NVSwitch intra-node. **[RISK]** Для recommended multi-node RunPod `ens*` допускается только с InfiniBand attestation; NCCL/IB parity и event-ledger replay обязательны. |
 | Storage | **[ENGINEERING HYPOTHESIS]** 4 TB min / 10 TB rec Network Volume; encrypted registry хранит trace lineage/schema/router/V1. |
-| Checkpoint | **[ENGINEERING HYPOTHESIS]** Каждые 1,000 steps или 2 часа; independent router/V1 checkpoints, last-3 + calibrated-best. |
+| Checkpoint | **[ENGINEERING HYPOTHESIS]** Каждые 1,000 steps/2 часа; independent router/V1 checkpoints with fresh optimizers; `M4` immutable. |
 | Estimated wall-clock | **[ENGINEERING HYPOTHESIS]** Router 1–3 дня; V1 3–10 дней; ablations суммарно 7–18 дней. |
 | Exact metric | **[EXPERIMENT REQUIRED]** Router 90% Top-2 recall/no >35%; V1 delta 80%, AUROC .90, ECE .05, +5 pp vs V0. |
 | Stop/economic justification | **[RISK]** V1 run прекращается, если early scaling curve не способен дать +5 pp к V0; deterministic V0 — допустимый final artifact. |

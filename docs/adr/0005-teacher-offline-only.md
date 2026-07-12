@@ -1,32 +1,32 @@
-# ADR-0005: heavy teacher используется только offline
+# ADR-0005: foundation не является teacher; future critic только offline
 
 - **VERIFIED FACT:** Статус: Accepted.
-- **VERIFIED FACT:** Область: E-01 teacher/quality tier.
+- **VERIFIED FACT:** Область: E-01 foundation и future critic/quality tier.
 
 ## Контекст
 
-- **VERIFIED FACT:** Canonical teacher candidate `Qwen/Qwen3-Coder-480B-A35B-Instruct` model card фиксирует 480B total, 35B activated, 62 layers, 160 experts, Top-8 и native 262 144 context.
-- **RISK:** Постоянный teacher в live path увеличивает latency, стоимость, operational footprint и зависимость результата от отдельной модели.
-- **RISK:** Teacher output не является ground truth и может передавать ошибки, identity и unsafe tool behavior.
+- **VERIFIED FACT:** `Qwen/Qwen3-Coder-480B-A35B-Instruct` — direct post-trained foundation E-01: 480B total, 35B activated, 62 layers, 160 experts, Top-8 и native 262 144 context.
+- **VERIFIED FACT:** Foundation не считается teacher для собственного post-training и не используется как доказательство качества собственных synthetic labels.
+- **RISK:** Выход любого будущего critic/teacher не является ground truth и может передавать correlated errors, identity и unsafe tool behavior.
 
 ## Решение
 
-- **VERIFIED FACT:** Heavy teacher разрешён только offline для synthetic trajectories, candidate generation, critique, distillation и evaluation research на RunPod H200.
-- **VERIFIED FACT:** Teacher не участвует в обычном live runtime, hard-case routing пользователя или approval decision.
-- **VERIFIED FACT:** Никаких teacher generation runs не санкционировано данным ADR.
+- **EXPERIMENT REQUIRED:** Любой future critic/teacher выбирается отдельным сравнением, получает exact pinned repo/revision/config/tokenizer и работает только offline на H200.
+- **VERIFIED FACT:** Future critic/teacher не участвует в обычном live runtime, hard-case routing пользователя или approval decision.
+- **VERIFIED FACT:** Никаких critic/teacher generation runs и никакого конкретного critic checkpoint данным ADR не санкционировано.
 
 ## Контроль качества
 
-- **ENGINEERING HYPOTHESIS:** Teacher samples принимаются только после executable verifier, policy checks, provenance и human review для high-risk classes.
-- **EXPERIMENT REQUIRED:** Сравнить teacher candidates и human/automatic verified outcomes; отбрасывать задачи, где verifier не может установить результат.
+- **ENGINEERING HYPOTHESIS:** Critic samples принимаются только после executable verifier, policy checks, provenance и human review для high-risk classes.
+- **EXPERIMENT REQUIRED:** Сравнить отдельно pinned critic candidates и human/automatic verified outcomes; отбрасывать задачи, где verifier не может установить результат.
 - **RISK:** Model-based judge того же семейства создаёт correlated bias; eval использует независимые graders и executable evidence.
 
 ## Последствия
 
-- **VERIFIED FACT:** Runtime SLO и availability E-01 не зависят от teacher.
-- **ENGINEERING HYPOTHESIS:** Offline amortization сохраняет quality benefit без live cost, если distillation реально улучшает frozen VETCR.
-- **RISK:** Если uplift после verification статистически незначим, teacher budget прекращается.
+- **VERIFIED FACT:** Runtime SLO и availability E-01 не зависят от critic/teacher.
+- **ENGINEERING HYPOTHESIS:** Offline critic может быть полезен только если distillation реально улучшает frozen VETCR.
+- **RISK:** Если uplift после verification статистически незначим, critic budget прекращается.
 
 ## Release artifact
 
-- **VERIFIED FACT:** Teacher manifest содержит exact repo/revision, tokenizer/config hashes, generation config, RunPod H200 topology, dataset lineage, verifier versions и accepted/rejected sample counts.
+- **VERIFIED FACT:** Critic manifest содержит exact repo/revision, tokenizer/config hashes, generation config, H200 topology, dataset lineage, verifier versions и accepted/rejected sample counts.

@@ -2,8 +2,11 @@
 
 ## Назначение
 
-- **VERIFIED FACT:** Foundation Plane фиксирует E-01 backbone `Qwen/Qwen3-Coder-Next-Base` и происхождение derivative model.
-- **VERIFIED FACT:** Model card: 80B total/3B activated, 48 layers, hidden 2048, hybrid Gated DeltaNet/Gated Attention, 512 experts, Top-10 + shared, native 262 144 context.
+- **VERIFIED FACT:** Foundation Plane фиксирует прямой E-01 backbone `Qwen/Qwen3-Coder-480B-A35B-Instruct` и происхождение derivative model.
+- **VERIFIED FACT:** Official card/config: causal LM, `Pretraining & Post-training`, 480B total/35B activated, 62 layers, hidden 6144, GQA 96Q/8KV, head dimension 128, 160 routed experts, Top-8, no shared expert (`shared_expert_intermediate_size=0`), expert intermediate 2560, vocabulary 151 936, native context 262 144, BF16, Apache-2.0.
+- **VERIFIED FACT:** Отдельно выпущенный официальный 480B Base checkpoint в проверенных источниках не идентифицирован; upstream E-01 является Instruct.
+- **VERIFIED FACT:** Exact upstream SHA ещё не верифицирован; revision до source preflight обозначается `PIN_BEFORE_TRAINING`.
+- **VERIFIED FACT:** 80B/3B Next Base не является E-01 foundation и может существовать только как исторически отвергнутая/альтернативная branch.
 - **RISK:** Model card не является доказательством качества LÆTEX на enterprise tasks.
 
 ## Inputs / outputs
@@ -29,14 +32,18 @@
 
 ## Adaptation policy
 
-- **ENGINEERING HYPOTHESIS:** E-01 начинает с LoRA/adapters на attention/output projections и selected dense/shared paths; embeddings, tokenizer и internal MoE router заморожены.
-- **EXPERIMENT REQUIRED:** Selective unfreezing layer norms/shared experts/router допускается только по ablation с regression suite.
-- **RISK:** Internal router adaptation может вызвать expert collapse и catastrophic forgetting; full-parameter tuning требует отдельного compute/quality gate.
-- **ENGINEERING HYPOTHESIS:** Replay mixture исходного coding data, low learning rate, gradient monitoring и frozen baseline eval ограничат forgetting.
+- **ENGINEERING HYPOTHESIS:** Канонический lineage: frozen BF16 S0 → identity/tool LoRA → verified BF16 merge M1 → enterprise Action SFT LoRA → merge M2 → preference optimization → GRPO → BF16 master M4 → FP8 serving derivative после parity.
+- **ENGINEERING HYPOTHESIS:** Embeddings, tokenizer, internal MoE router и все routed experts на начальных стадиях заморожены. LoRA targets выбираются только после module inventory и memory profiling exact pinned checkpoint.
+- **ENGINEERING HYPOTHESIS:** Broad CPT исключён из default recipe: upstream уже post-trained, и language-model objective может разрушить instruction/tool alignment.
+- **EXPERIMENT REQUIRED:** Узкий CPT, layer unfreezing, router adaptation или expert adaptation допускаются только как отдельные ablations после доказанного adapter ceiling и с frozen regression suite.
+- **EXPERIMENT REQUIRED:** M1 и M2 обязаны пройти merge integrity, weight-delta audit, identity/tool/coding/governance evaluation и reproducibility check; M4 обязан пройти тот же release suite.
+- **EXPERIMENT REQUIRED:** FP8 serving derivative получает release status только после parity с BF16 M4 по VETCR, critical failures, tool schema validity и bounded numerical drift.
+- **RISK:** Router/expert adaptation может вызвать routing collapse, expert drift и catastrophic forgetting; full-parameter tuning требует отдельного compute/economic gate.
+- **RISK:** Даже LoRA merge может необратимо испортить BF16 master при ошибке dtype, scaling или target mapping; S0/M1/M2/M4 хранятся как отдельные immutable artifacts.
 
 ## Failure modes
 
-- **RISK:** Hallucinated state, invalid tool syntax, identity leakage, context truncation, catastrophic forgetting, router drift и OOM на long context.
+- **RISK:** Hallucinated state, invalid tool syntax, identity leakage, upstream persona persistence, alignment loss, context truncation, catastrophic forgetting, router drift и OOM на long context.
 - **EXPERIMENT REQUIRED:** Каждая failure class имеет frozen regression set и severity-specific release threshold.
 
 ## Observability
@@ -46,4 +53,4 @@
 
 ## Release artifact
 
-- **VERIFIED FACT:** Signed checkpoint reference, tokenizer/chat template, adapter compatibility manifest, internal model card, upstream notices, eval dossier и reproducibility record.
+- **VERIFIED FACT:** Release artifact содержит signed BF16 M4 reference, FP8 derivative reference после parity, tokenizer/chat template, S0/M1/M2/M4 lineage, adapter compatibility manifest, internal model card, pinned upstream revision, upstream notices, eval dossier и reproducibility record.

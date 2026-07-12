@@ -2,9 +2,9 @@
 
 ## Input, objective, output
 
-- **[VERIFIED FACT] Input:** accepted preference policy, isolated executable sandboxes, immutable tasks, deterministic tests, policy engine, failure injections и reward specification.
+- **[VERIFIED FACT] Input:** accepted `M3` BF16, isolated executable sandboxes, immutable tasks, deterministic tests, policy engine, failure injections и reward specification.
 - **[ENGINEERING HYPOTHESIS] Objective:** повысить verified completion и recovery после tool failures, оптимизируя observed outcome, а не правдоподобный текст.
-- **[VERIFIED FACT] Output:** GRPO policy bundle, replayable trajectories, reward integrity report, sandbox security evidence и rejected-run ledger.
+- **[VERIFIED FACT] Output:** retained `A4`, BF16 `M4=M3+A4`, fresh optimizer record, replayable trajectories, reward/security и merge parity.
 - **[RISK]** Эта фаза условна: если additional verified SFT даёт такой же gain дешевле и стабильнее, GRPO — NO-GO.
 
 ## Reward и containment
@@ -26,21 +26,22 @@
 | Поле | Спецификация |
 |---|---|
 | Objective | **[EXPERIMENT REQUIRED]** Adapter-first GRPO с distributed rollouts и policy updates. |
-| Minimum H200 | **[ENGINEERING HYPOTHESIS]** 32× H200 SXM 141 GB, 4 узла. |
-| Recommended H200 | **[ENGINEERING HYPOTHESIS]** 64× H200 SXM 141 GB, 8 узлов. |
-| Parallelism | **[ENGINEERING HYPOTHESIS]** Min TP=2, PP=1, EP=8, CP=1, DP=16; rec TP=2, PP=1, EP=8, CP=1, DP=32. Logical rollout/update partition фиксируется run manifest. |
-| VRAM | **[VERIFIED FACT]** 4,512/9,024 GB aggregate HBM; policy, optimizer и rollout inference не должны silently oversubscribe memory. |
+| Minimum H200 | **[ENGINEERING HYPOTHESIS]** 64× H200 SXM 141 GB, 8 узлов. |
+| Recommended H200 | **[ENGINEERING HYPOTHESIS]** 128× H200, 16 узлов; требует RunPod capacity/contact sales beyond standard 64. |
+| Parallelism | **[ENGINEERING HYPOTHESIS]** 64: TP8/PP2/CP2/DP2/EP1; 128: TP8/PP2/CP2/DP4/EP1. Rollout/update ranks sum exactly to world size. |
+| VRAM | **[ENGINEERING HYPOTHESIS]** 9,024/18,048 GB aggregate HBM; policy/optimizer/rollout residency подтверждается memory proof. |
 | Network | **[VERIFIED FACT]** NVLink/NVSwitch intra-node. **[RISK]** RunPod `ens*` требуется с InfiniBand attestation; policy sync/rollout queues изолированы, NCCL/IB acceptance обязателен. |
 | Storage | **[ENGINEERING HYPOTHESIS]** 8 TB min / 20 TB rec Network Volume; object store хранит только accepted/required audit trajectories и checkpoints. |
-| Checkpoint | **[ENGINEERING HYPOTHESIS]** Каждые 100 update steps или 60 минут; last-5 + best constrained reward; rollout cursor/RNG обязательны. |
-| Estimated wall-clock | **[ENGINEERING HYPOTHESIS]** Pilot 2–5 дней; gated production 7–21 день в зависимости от sandbox latency. |
+| Checkpoint | **[ENGINEERING HYPOTHESIS]** `A4` + fresh optimizer/RNG/rollout cursor каждые 100 updates/60 минут; retain `M3/A4/M4`. |
+| Estimated wall-clock | **[ENGINEERING HYPOTHESIS]** 64-H200 pilot 3–7 дней; 128-H200 gated run 7–21 день. |
 | Exact metric | **[EXPERIMENT REQUIRED]** VETCR +8% relative, recovery >=60%, unsafe effects=0, lower 95% CI >0. |
 | Stop/economic justification | **[RISK]** Немедленный stop при containment failure; scale только если pilot превосходит frozen SFT cost baseline. |
-| Artifact | **[VERIFIED FACT]** Policy bundle, trajectory corpus, reward/security reports, go/no-go decision. |
+| Artifact | **[VERIFIED FACT]** `A4`, `M4` BF16, trajectory corpus, merge/reward/security reports, go/no-go. |
 
 ## Operational risks
 
 - **[RISK]** Sandbox throughput, а не H200, может стать bottleneck; измерять GPU idle ratio и не покупать дополнительные GPU для скрытия orchestration defect.
 - **[RISK]** Correlated rollouts уменьшают effective sample size; публиковать task-family clustered confidence intervals.
 - **[EXPERIMENT REQUIRED]** Failure injection должен включать timeout, malformed tool output, permission denial, stale state и partial test failure.
+- **[VERIFIED FACT]** Base router/experts remain frozen; Stage 4 optimizer is fresh; FP8 never parents `M4`.
 

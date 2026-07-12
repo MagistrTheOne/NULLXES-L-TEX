@@ -1,63 +1,62 @@
-schema: laetex.runpod.profile/v1
+schema: laetex.runpod.profile/v2
 name: baseline
 phase: 0
 classification: EXPERIMENT_REQUIRED
-purpose: "Воспроизводимая pre-training baseline evaluation без изменения весов."
+purpose: "BF16 baseline прямого 480B/35B Instruct foundation без изменения весов."
+foundation:
+  repo: Qwen/Qwen3-Coder-480B-A35B-Instruct
+  role: foundation_and_production_candidate
+  teacher: none
+  master_precision: BF16
+  parent: upstream-bf16
 platform:
   provider: RunPod
   cloud: Secure Cloud
-  deployment: {minimum: secure-cloud-pod, recommended: instant-cluster}
   local_model_workloads: forbidden
+  deployment: {minimum: instant-cluster, recommended: instant-cluster}
 compute:
-  gpu:
-    model: NVIDIA H200 SXM
-    hbm_gb: 141
-  minimum_gpus: 16
-  recommended_gpus: 32
-  minimum_nodes: 2
-  recommended_nodes: 4
-  gpus_per_node: 8
+  gpu: {model: NVIDIA H200 SXM, hbm_gb: 141, gpus_per_node: 8}
+  minimum: {gpus: 16, nodes: 2}
+  recommended: {gpus: 32, nodes: 4}
   precision: BF16
 parallelism:
-  minimum: {TP: 4, PP: 1, EP: 1, CP: 1, DP: 4}
-  recommended: {TP: 4, PP: 1, EP: 1, CP: 1, DP: 8}
-  note: "TP×PP×CP×DP=16/32; EP=1 для inference mapping."
+  minimum: {world_size: 16, TP: 8, PP: 2, CP: 1, DP: 1, EP: 1}
+  recommended: {world_size: 32, TP: 8, PP: 2, CP: 1, DP: 2, EP: 1}
+  world_size_rule: "world_size=TP*PP*CP*DP; EP is not an extra multiplier"
+  ep_semantics: "EP=1 for inference; no expert routing update"
 network:
-  intra_node: NVLink/NVSwitch
-  inter_node: "Required before run: provider-attested InfiniBand/high-bandwidth fabric on RunPod ens*; external documentation and the 3200 Gbps public figure do not attest this allocation"
-  acceptance: "Provider IB attestation, NCCL collectives, no eth0 fallback, zero XID/ECC errors"
+  required: "NVLink/NVSwitch intra-node; provider-attested InfiniBand on RunPod ens* inter-node"
+  acceptance: "Written IB attestation plus NCCL all-reduce/load test; no eth0 fallback; zero XID/ECC errors"
 storage:
-  working_set: "RunPod Network Volume mounted at /workspace"
-  durable_registry: "External encrypted object store with versioning and immutable manifests"
+  working_set: "RunPod Network Volume /workspace"
+  durable_registry: "External encrypted versioned object store with immutable manifests"
   local_scratch: ephemeral_only
 checkpoint:
-  source: "Immutable upstream base snapshot + tokenizer hash"
-  writes: "No model checkpoint; eval state and resumable task ledger only"
+  input: "Immutable upstream BF16 snapshot, tokenizer and chat-template hashes"
+  output: "No weight checkpoint; resumable task ledger and evaluation evidence only"
+  cadence: "Task ledger every 15 minutes"
+  retention: "All signed baseline evidence"
 wall_clock:
   tag: ENGINEERING_HYPOTHESIS
-  estimate: "12–36 hours for the first full suite; refine after 100-task pilot"
+  estimate: "12-36 hours after a 100-task throughput pilot"
 metrics:
-  primary: "VETCR_baseline"
-  exact_gate: "100% task-attempt accounting; grader replay mismatch = 0"
+  primary: VETCR_baseline
+  exact_gate: "100% attempt accounting; replay mismatch=0; missing evidence=0"
 stop_conditions:
-  - "Any dataset/checkpoint checksum mismatch"
-  - "Any model weight mutation"
-  - "Evaluation harness nondeterminism above declared tolerance"
-economic_gate: "Run only after held-out suite, graders and decision thresholds are frozen."
+  - "Checksum mismatch or any model-weight mutation"
+  - "Evaluation nondeterminism above frozen tolerance"
+economic_gate: "Run only after held-out tasks, graders, retry budgets and thresholds are frozen."
 artifacts:
-  - "baseline-results.jsonl"
-  - "grader-replay-bundle"
-  - "latency-cost-manifest"
+  - baseline-results.jsonl
+  - grader-replay-bundle
+  - latency-cost-manifest
 validation:
-  schema_checks:
-    - "H200 SXM and 141 GB only"
-    - "RunPod H200 Instant Cluster: 16 GPU minimum, 32 GPU recommended"
-    - "No secrets or embedded credentials"
-    - "Network Volume plus external registry required"
-  status: documentation_profile_not_provisioning
+  profile_only: true
+  checks:
+    - "16=8*2*1*1 and 32=8*2*1*2"
+    - "H200 SXM 141 GB only; no local workload"
+    - "Network, storage and checkpoint acceptance recorded"
 assumptions:
-  - tag: ENGINEERING_HYPOTHESIS
-    statement: "16 H200 — minimum baseline replay; 32 H200 дают parallel replay в Instant Cluster."
-  - tag: RISK
-    statement: "Фактические throughput и стоимость неизвестны до Phase 0."
+  - {tag: ENGINEERING_HYPOTHESIS, statement: "16 H200 физически достаточны для BF16 sharding после load/memory proof; 32 дают две replicas."}
+  - {tag: RISK, statement: "Context/KV-cache headroom и throughput не подтверждены до Phase 0."}
 

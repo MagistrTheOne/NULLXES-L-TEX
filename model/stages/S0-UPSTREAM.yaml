@@ -1,0 +1,46 @@
+apiVersion: nullxes.training-stage/v1
+kind: TrainingStage
+metadata:
+  id: S0-UPSTREAM
+  name: Pin and verify upstream
+  status: planned
+  tags: [foundation, verification, bfloat16, h200-only, not-run]
+spec:
+  documentation_only: true
+  execution_state: not_run
+  input:
+    parent_artifact_id: hf://Qwen/Qwen3-Coder-480B-A35B-Instruct@PIN_BEFORE_TRAINING
+    parent_sha256: sha256:PIN_BEFORE_TRAINING
+    revision: PIN_BEFORE_TRAINING
+  objective: Establish an immutable, licensed, byte-verifiable BF16 foundation.
+  trainable_scope:
+    method: none
+    modules: []
+    frozen: [all_parameters, tokenizer]
+  data:
+    class: upstream_artifact_metadata
+    dataset_manifest_id: manifest://upstream/PIN_BEFORE_TRAINING
+    customer_data_allowed: false
+  context:
+    tokens: 32768
+    mode: verification_only
+  runtime:
+    provider: RunPod
+    accelerator: NVIDIA_H200
+    local_execution: forbidden
+  gates:
+    - {id: immutable_revision, metric: revision_is_commit_sha, operator: eq, threshold: true}
+    - {id: shard_integrity, metric: required_files_sha256_coverage, operator: eq, threshold: 1.0}
+    - {id: license_integrity, metric: license_and_notice_manifest_complete, operator: eq, threshold: true}
+    - {id: config_match, metric: canonical_architecture_field_match_rate, operator: eq, threshold: 1.0}
+    - {id: bf16_source, metric: master_weight_dtype_is_bfloat16, operator: eq, threshold: true}
+  merge_policy:
+    action: none
+    merge_dtype: bfloat16
+    quantized_merge: forbidden
+  outputs:
+    artifact_id: artifact://latex-e01/S0-UPSTREAM/PENDING
+    artifact_sha256: sha256:PENDING
+    hash_license_manifest_id: manifest://latex-e01/S0-UPSTREAM/PENDING
+    evidence_id: evidence://latex-e01/S0-UPSTREAM/NOT_RUN
+    run_id: run://NOT_RUN/S0-UPSTREAM
