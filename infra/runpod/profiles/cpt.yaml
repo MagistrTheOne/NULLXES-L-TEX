@@ -1,14 +1,15 @@
 schema: laetex.runpod.profile/v2
-name: identity-tool-lora
-phase: 1
-classification: ENGINEERING_HYPOTHESIS
-purpose: "Stage 1 identity/tool-contract BF16 LoRA; broad CPT disabled. Optional DAPT is a separate no-default ablation."
+name: optional-dapt
+enabled: false
+phase: optional
+classification: EXPERIMENT_REQUIRED
+purpose: "Disabled optional domain-adaptive pretraining ablation only; it must not train identity, tool behavior, or produce an E-01 lineage parent."
 foundation:
   repo: Qwen/Qwen3-Coder-480B-A35B-Instruct
-  role: foundation_and_production_candidate
+  role: frozen_foundation_reference
   teacher: none
   master_precision: BF16
-  parent: upstream-bf16
+  parent: S0-bf16
 platform:
   provider: RunPod
   cloud: Secure Cloud
@@ -18,48 +19,46 @@ compute:
   gpu: {model: NVIDIA H200 SXM, hbm_gb: 141, gpus_per_node: 8}
   minimum: {gpus: 16, nodes: 2}
   recommended: {gpus: 32, nodes: 4}
-  long_context_recommended: {gpus: 64, nodes: 8, sequence_tokens: "32768-65536"}
   precision: "BF16 weights and LoRA; no FP8 training"
 parallelism:
   minimum: {world_size: 16, TP: 8, PP: 2, CP: 1, DP: 1, EP: 1}
   recommended: {world_size: 32, TP: 8, PP: 2, CP: 1, DP: 2, EP: 1}
-  long_context_recommended: {world_size: 64, TP: 8, PP: 2, CP: 2, DP: 2, EP: 1}
   world_size_rule: "world_size=TP*PP*CP*DP; EP is not an extra multiplier"
-  ep_semantics: "Upstream 160 routed experts and base router remain frozen; EP=1 until a measured Megatron mapping proves a need"
+  ep_semantics: "Base router and routed experts remain frozen; EP=1"
 network:
-  required: "NVLink/NVSwitch intra-node; provider-attested InfiniBand on RunPod ens* inter-node"
-  acceptance: "Written IB attestation, NCCL all-reduce, checkpoint-load and LoRA-gradient parity; no eth0 fallback"
+  required: "Provider-attested NVLink/NVSwitch intra-node and provider-attested InfiniBand inter-node"
+  acceptance: "Written provider fabric/topology attestation, NCCL all-reduce, checkpoint-load and gradient parity; no eth0 fallback"
 storage:
-  working_set: "RunPod Network Volume /workspace; immutable identity/tool examples"
-  durable_registry: "External encrypted object store for U0, A1, M1, optimizer state and lineage"
+  working_set: "RunPod Network Volume /workspace; licensed DAPT ablation shards only"
+  durable_registry: "External encrypted object store for S0, optional adapter, optimizer state and ablation evidence"
   local_scratch: ephemeral_only
 checkpoint:
-  input: "U0 upstream BF16 master"
-  output: "A1 retained identity/tool adapter; M1=A1 merged into U0 in BF16"
-  cadence: "Adapter plus optimizer/RNG/data cursor every 500 steps or 2 hours"
-  retention: "U0, all promoted A1 adapters, M1 BF16 and merge/eval manifests"
-  optimizer_policy: "Fresh optimizer for Stage 1; optimizer state never crosses the M1 merge boundary"
+  input: "Immutable S0 BF16 master hash"
+  output: "Optional DAPT ablation adapter only; never A1, M1, or a lineage parent"
+  cadence: "Adapter plus optimizer/RNG/data cursor every 500 steps or 2 hours if explicitly enabled"
+  retention: "S0 hash, DAPT adapter, optimizer state, data lineage and ablation report"
+  optimizer_policy: "Fresh optimizer; identity/tool datasets and objectives forbidden"
 wall_clock:
   tag: ENGINEERING_HYPOTHESIS
-  estimate: "8-16K: 2-6 days on 16 H200 or 1-3 days on 32; 32-64K: 2-6 days on 64 after pilot"
+  estimate: "1-4 days on 16 H200 or 1-2 days on 32 after explicit ablation approval"
 metrics:
-  primary: identity_tool_contract_pass_rate
-  exact_gate: "Identity leakage=0/10000; tool-schema validity>=99.5%; protected coding regression<=2 pp"
+  primary: domain_perplexity_without_capability_regression
+  exact_gate: "Held-out domain perplexity improves >=5%; protected coding regression<=1 pp; identity/tool behavior delta within frozen tolerance"
 stop_conditions:
-  - "Identity leakage at candidate gate or protected coding regression >2 pp twice"
+  - "Profile remains disabled without a signed DAPT ablation approval"
+  - "Any identity/tool training example, objective, or behavior-targeting loss is detected"
   - "Any base-router or routed-expert weight mutation"
-economic_gate: "Scale only after a short-sequence pilot shows positive identity/tool gain per dollar."
+economic_gate: "Enable only if retrieval/SFT baselines fail and expected domain gain justifies a separate H200 ablation; never required for E-01."
 artifacts:
-  - A1-identity-tool-lora
-  - M1-bf16-merged
-  - merge-lineage-and-regression-report
+  - optional-dapt-adapter
+  - dapt-ablation-and-lineage-report
 validation:
   profile_only: true
   checks:
-    - "16=8*2*1*1; 32=8*2*1*2; 64=8*2*2*2"
-    - "Broad CPT has no default run; optional DAPT requires a separate approval/profile"
-    - "A1 retained; M1 BF16 only; no FP8 parent"
+    - "enabled=false"
+    - "16=8*2*1*1 and 32=8*2*1*2"
+    - "No identity/tool objective; no A1/M1 output; no lineage-parent promotion"
 assumptions:
-  - {tag: ENGINEERING_HYPOTHESIS, statement: "Dense attention-projection LoRA is sufficient for identity/tool overwrite while experts/router stay frozen."}
-  - {tag: RISK, statement: "480B LoRA support, merge correctness and long-context memory require H200 proof."}
+  - {tag: EXPERIMENT_REQUIRED, statement: "DAPT must beat retrieval and SFT controls before it can be enabled."}
+  - {tag: RISK, statement: "DAPT can cause catastrophic forgetting without producing an enterprise action advantage."}
 

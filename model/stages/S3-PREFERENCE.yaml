@@ -31,7 +31,9 @@ spec:
   runtime:
     provider: RunPod
     accelerator: NVIDIA_H200
-    topology: HGX_H200_NVLink_NVSwitch_InfiniBand
+    provider_attestation_required:
+      intra_node: NVLink_NVSwitch
+      inter_node: InfiniBand
     local_execution: forbidden
   gates:
     - {id: preference_win, metric: blinded_heldout_pairwise_win_rate_vs_M2, operator: gte, threshold: 0.60}
@@ -41,10 +43,12 @@ spec:
     - {id: identity_retention, metric: upstream_identity_reference_rate, operator: eq, threshold: 0.0}
     - {id: verbosity, metric: median_tokens_over_M2_ratio_on_equivalent_successes, operator: lte, threshold: 1.05}
   merge_policy:
-    action: defer_to_M4
+    action: defer_to_M3
+    required_merge_stage: M3-PREFERENCE-MERGED
     merge_dtype: bfloat16
+    bf16_only: true
     preserve_adapter: true
-    stacking_parent: artifact://latex-e01/M2-ACTION-MERGED/PENDING
+    require_new_immutable_parent_hash: true
     quantized_merge: forbidden
   outputs:
     artifact_id: adapter://latex-e01/S3-PREFERENCE/PENDING

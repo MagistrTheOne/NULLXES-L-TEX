@@ -1,8 +1,14 @@
 # Phase 0 — Baseline direct 480B foundation
 
+## Canonical profile and lineage position
+
+- **[VERIFIED FACT]** Profile: [`../../infra/runpod/profiles/baseline.yaml`](../../infra/runpod/profiles/baseline.yaml).
+- **[VERIFIED FACT]** Position: `S0` baseline must pass before identity `A1`; Phase 0 does not create a new weight checkpoint.
+- **[RISK]** Missing, unsigned or hash-unpinned profile blocks execution. No run or result is claimed here.
+
 ## Input, objective, output
 
-- **[VERIFIED FACT] Input:** immutable BF16 `Qwen/Qwen3-Coder-480B-A35B-Instruct` (`U0`), unchanged tokenizer/chat template hash, frozen LÆTEX-Bench, private holdouts и deterministic graders.
+- **[VERIFIED FACT] Input:** immutable BF16 `Qwen/Qwen3-Coder-480B-A35B-Instruct` (`S0`), unchanged tokenizer/chat template hash, frozen LÆTEX-Bench, private holdouts и deterministic graders.
 - **[EXPERIMENT REQUIRED] Objective:** измерить quality, latency, tool reliability, safety, identity leakage и cost до weight changes.
 - **[VERIFIED FACT] Output:** signed baseline manifest, evidence, failure taxonomy, latency/cost distributions и contamination audit.
 - **[RISK]** Это foundation/production candidate, не teacher. Model judge не заменяет executable grader.
@@ -32,7 +38,7 @@
 | VRAM | **[ENGINEERING HYPOTHESIS]** BF16 weights ≈960 GB before runtime overhead; 16 H200 is minimum, 32 adds replica/headroom. |
 | Network | **[VERIFIED FACT]** NVLink/NVSwitch внутри узла. **[RISK]** Для recommended multi-node требуется attested InfiniBand на RunPod `ens*`; публичные 3200 Gbps сами по себе этого не доказывают. |
 | Storage | **[VERIFIED FACT]** `/workspace` Network Volume для working set; external encrypted object store для frozen inputs/evidence. |
-| Checkpoint | **[VERIFIED FACT]** `U0` immutable; weight checkpoints не создаются; task ledger/evidence каждые 15 минут. |
+| Checkpoint | **[VERIFIED FACT]** `S0` immutable; weight checkpoints не создаются; task ledger/evidence каждые 15 минут. |
 | Estimated wall-clock | **[ENGINEERING HYPOTHESIS]** 12–36 часов для первого полного suite; уточнить после 100-task pilot. |
 | Exact metric | **[VERIFIED FACT]** VETCR, Wilson 95% CI для unweighted rate, replay mismatch=0, audit completeness=100%. |
 | Stop/economic justification | **[ENGINEERING HYPOTHESIS]** Full run оправдан только после frozen graders; 32 GPU — если wall-clock saving дешевле задержки решения. |
@@ -43,4 +49,5 @@
 - **[RISK]** Small private suite даст широкий confidence interval; увеличить task count, а не скрывать uncertainty.
 - **[RISK]** Long-context prompts могут превратить benchmark в I/O test; отдельно публиковать retrieval/context strata.
 - **[RISK]** RunPod capacity/topology variance требует cluster acceptance report для каждого allocation.
+- **[VERIFIED FACT]** Локальные model workloads запрещены; Phase 0 выполняется только на H200 inference/evaluation allocation.
 

@@ -1,0 +1,62 @@
+schema: laetex.runpod.profile/v2
+name: identity-lora
+enabled: true
+phase: 1
+classification: ENGINEERING_HYPOTHESIS
+purpose: "Train retained A1 identity/tool-contract LoRA on immutable S0; merge is a separate job."
+foundation:
+  repo: Qwen/Qwen3-Coder-480B-A35B-Instruct
+  role: foundation_and_production_candidate
+  teacher: none
+  master_precision: BF16
+  parent: S0-bf16
+platform:
+  provider: RunPod
+  cloud: Secure Cloud
+  local_model_workloads: forbidden
+  deployment: {minimum: instant-cluster, recommended: instant-cluster}
+compute:
+  gpu: {model: NVIDIA H200 SXM, hbm_gb: 141, gpus_per_node: 8}
+  minimum: {gpus: 16, nodes: 2}
+  recommended: {gpus: 32, nodes: 4}
+  precision: "BF16 weights and LoRA; no FP8 training"
+parallelism:
+  minimum: {world_size: 16, TP: 8, PP: 2, CP: 1, DP: 1, EP: 1}
+  recommended: {world_size: 32, TP: 8, PP: 2, CP: 1, DP: 2, EP: 1}
+  world_size_rule: "world_size=TP*PP*CP*DP; EP is not an extra multiplier"
+  ep_semantics: "Base router and routed experts remain frozen; EP=1"
+network:
+  required: "Provider-attested NVLink/NVSwitch intra-node and provider-attested InfiniBand inter-node"
+  acceptance: "Written provider fabric/topology attestation, NCCL all-reduce, checkpoint-load and LoRA-gradient parity; no eth0 fallback"
+storage:
+  working_set: "RunPod Network Volume /workspace; immutable identity/tool examples and adapter state"
+  durable_registry: "External encrypted object store for S0, A1, optimizer state, datasets and evidence"
+  local_scratch: ephemeral_only
+checkpoint:
+  input: "Immutable S0 BF16 master, tokenizer hash and chat-template hash"
+  output: "Retained A1 identity/tool adapter only; no merged master"
+  cadence: "Adapter plus optimizer/RNG/data cursor every 500 steps or 2 hours"
+  retention: "S0 hash, all promoted A1 adapters, optimizer state and training/eval manifests"
+  optimizer_policy: "Fresh optimizer for A1; optimizer state never crosses a merge boundary"
+wall_clock:
+  tag: ENGINEERING_HYPOTHESIS
+  estimate: "2-6 days on 16 H200 or 1-3 days on 32 after a throughput pilot"
+metrics:
+  primary: identity_tool_contract_pass_rate
+  exact_gate: "Identity leakage=0/10000; tool-schema validity>=99.5%; protected coding regression<=2 pp"
+stop_conditions:
+  - "Identity leakage at candidate gate or protected coding regression >2 pp twice"
+  - "Any base-router or routed-expert weight mutation"
+economic_gate: "Scale only after a pilot shows positive identity/tool gain per H200-hour."
+artifacts:
+  - A1-identity-tool-lora
+  - identity-training-lineage-and-evidence
+validation:
+  profile_only: true
+  checks:
+    - "16=8*2*1*1 and 32=8*2*1*2"
+    - "A1 retained; training job emits no M1"
+    - "No CPT/DAPT objective or local model workload"
+assumptions:
+  - {tag: ENGINEERING_HYPOTHESIS, statement: "Attention-projection LoRA can overwrite user-facing identity while preserving coding capability."}
+  - {tag: RISK, statement: "480B LoRA support and identity durability require H200 proof and adversarial evaluation."}

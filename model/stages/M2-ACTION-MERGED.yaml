@@ -36,7 +36,9 @@ spec:
     - {id: immutable_hash, metric: new_artifact_sha256_recorded, operator: eq, threshold: true}
   merge_policy:
     action: merge
+    adapters_to_merge: [S2-ACTION-SFT]
     merge_dtype: bfloat16
+    bf16_only: true
     preserve_adapters: true
     mutate_parent: false
     require_new_immutable_parent_hash: true
@@ -44,6 +46,7 @@ spec:
   outputs:
     artifact_id: artifact://latex-e01/M2-ACTION-MERGED/PENDING
     artifact_sha256: sha256:PENDING_NEW_PARENT
+    immutable: true
     preserved_adapter_id: adapter://latex-e01/S2-ACTION-SFT/PENDING
     evidence_id: evidence://latex-e01/M2-ACTION-MERGED/NOT_RUN
     run_id: run://NOT_RUN/M2-ACTION-MERGED

@@ -9,11 +9,8 @@ spec:
   documentation_only: true
   execution_state: not_run
   input:
-    parent_artifact_id: composite://latex-e01/M2+S3/PENDING
-    parent_sha256: sha256:PENDING_COMPOSITE_M2_S3
-    base_artifact_id: artifact://latex-e01/M2-ACTION-MERGED/PENDING
-    adapters:
-      - {artifact_id: adapter://latex-e01/S3-PREFERENCE/PENDING, sha256: "sha256:PENDING_S3"}
+    parent_artifact_id: artifact://latex-e01/M3-PREFERENCE-MERGED/PENDING
+    parent_sha256: sha256:PENDING_M3
   objective: Improve verified task completion and failure recovery in replayable sandboxes without relaxing approval or evidence requirements.
   trainable_scope:
     method: grpo_with_lora
@@ -22,7 +19,7 @@ spec:
     modules:
       class: attention_projections
       exact_names: PIN_AFTER_STATE_DICT_AUDIT
-    frozen: [router, routed_experts, embeddings, tokenizer, base_weights, S3_adapter]
+    frozen: [router, routed_experts, embeddings, tokenizer, base_weights]
     optimizer_state: new
   data:
     class: executable_sandbox_trajectories
@@ -37,10 +34,12 @@ spec:
   runtime:
     provider: RunPod
     accelerator: NVIDIA_H200
-    topology: HGX_H200_NVLink_NVSwitch_InfiniBand
+    provider_attestation_required:
+      intra_node: NVLink_NVSwitch
+      inter_node: InfiniBand
     local_execution: forbidden
   gates:
-    - {id: completion_uplift, metric: verified_enterprise_task_completion_delta_vs_M2_percentage_points, operator: gte, threshold: 3.0}
+    - {id: completion_uplift, metric: verified_enterprise_task_completion_delta_vs_M3_percentage_points, operator: gte, threshold: 3.0}
     - {id: pass_to_pass, metric: pass_to_pass_test_rate, operator: gte, threshold: 0.95}
     - {id: recovery, metric: recoverable_tool_failure_recovery_rate, operator: gte, threshold: 0.85}
     - {id: evidence, metric: successful_tasks_with_complete_evidence_rate, operator: gte, threshold: 0.99}
@@ -50,8 +49,9 @@ spec:
   merge_policy:
     action: defer_to_M4
     merge_dtype: bfloat16
+    bf16_only: true
     preserve_adapter: true
-    adapter_order: [S3-PREFERENCE, S4-GRPO]
+    require_new_immutable_parent_hash: true
     quantized_merge: forbidden
   outputs:
     artifact_id: adapter://latex-e01/S4-GRPO/PENDING

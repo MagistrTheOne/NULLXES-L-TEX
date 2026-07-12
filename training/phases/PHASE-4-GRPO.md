@@ -1,10 +1,17 @@
 # Phase 4 — GRPO / Executable RL
 
+## Canonical profiles and lineage position
+
+- **[VERIFIED FACT]** GRPO `A4`: [`../../infra/runpod/profiles/grpo.yaml`](../../infra/runpod/profiles/grpo.yaml).
+- **[VERIFIED FACT]** Separate BF16 merge `M4`: [`../../infra/runpod/profiles/merge-m4.yaml`](../../infra/runpod/profiles/merge-m4.yaml).
+- **[VERIFIED FACT]** Strict position: accepted `M3 → A4 → M4`; no `M2`, unmerged `A3` or FP8 artifact may parent Phase 4.
+- **[RISK]** Missing, unsigned or hash-unpinned train/merge profile blocks the job. No run or gate pass is claimed here.
+
 ## Input, objective, output
 
 - **[VERIFIED FACT] Input:** accepted `M3` BF16, isolated executable sandboxes, immutable tasks, deterministic tests, policy engine, failure injections и reward specification.
 - **[ENGINEERING HYPOTHESIS] Objective:** повысить verified completion и recovery после tool failures, оптимизируя observed outcome, а не правдоподобный текст.
-- **[VERIFIED FACT] Output:** retained `A4`, BF16 `M4=M3+A4`, fresh optimizer record, replayable trajectories, reward/security и merge parity.
+- **[VERIFIED FACT] Output contract:** retained `A4`, then BF16 `M4=M3+A4`, fresh optimizer record, replayable trajectories, reward/security и merge parity.
 - **[RISK]** Эта фаза условна: если additional verified SFT даёт такой же gain дешевле и стабильнее, GRPO — NO-GO.
 
 ## Reward и containment
@@ -44,4 +51,5 @@
 - **[RISK]** Correlated rollouts уменьшают effective sample size; публиковать task-family clustered confidence intervals.
 - **[EXPERIMENT REQUIRED]** Failure injection должен включать timeout, malformed tool output, permission denial, stale state и partial test failure.
 - **[VERIFIED FACT]** Base router/experts remain frozen; Stage 4 optimizer is fresh; FP8 never parents `M4`.
+- **[VERIFIED FACT]** `A4` training и `M4` merge — separate H200 jobs; локальные rollout, training и merge workloads запрещены.
 

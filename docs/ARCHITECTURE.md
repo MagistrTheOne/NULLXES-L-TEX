@@ -12,7 +12,9 @@
 
 **VERIFIED FACT —** Официальный отдельно выпущенный 480B Base checkpoint в проверенных источниках не идентифицирован. Upstream уже прошёл pretraining и post-training.
 
-**ENGINEERING HYPOTHESIS —** Broad CPT исключён из default E-01 recipe из-за риска разрушить instruction, coding-agent и tool-use alignment upstream Instruct.
+**ENGINEERING HYPOTHESIS —** Broad CPT исключён из E-01 recipe. Узкий DAPT отключён по умолчанию; его corpus size остаётся `TBD_BY_PILOT` и может быть определён только отдельным pilot после frozen S0 baseline.
+
+**VERIFIED FACT —** Прямой foundation не является teacher для собственного post-training. Любой будущий critic — отдельный checkpoint с собственными pin, lineage и budget approval; он допускается только offline и отсутствует по умолчанию.
 
 **RISK —** Нельзя заявлять, что E-01 pretrained from zero, архитектурно независим от Qwen или универсально превосходит frontier-модели. Такие формулировки фактически неверны до появления независимого pretraining run и воспроизводимых сравнений.
 
@@ -30,7 +32,7 @@
 
 ### Не входит в E-01
 
-- **VERIFIED FACT —** Локальное обучение, fine-tuning, teacher inference и model serving запрещены проектным ограничением.
+- **VERIFIED FACT —** Локальное обучение, fine-tuning, critic generation и model serving запрещены проектным ограничением.
 - **VERIFIED FACT —** Consumer GPU, Mac/Apple Silicon, Colab, A100, H100, V100 и mixed-GPU training cluster не являются допустимой training infrastructure.
 - **ENGINEERING HYPOTHESIS —** Собственный tokenizer, pretraining from zero и второй большой LLM не нужны для E-01.
 - **RISK —** Прямая запись в production без sandbox, policy gate и approval нарушает целевой safety contract.
@@ -62,7 +64,9 @@
 
 **VERIFIED FACT —** Inference plane отделён от training jobs и также ограничен H200.
 
-**ENGINEERING HYPOTHESIS —** Weight serving, teacher generation и evaluation workers разворачиваются как разные pools с отдельными credentials, network policy, autoscaling policy и cost attribution.
+**ENGINEERING HYPOTHESIS —** Weight serving и evaluation workers разворачиваются как разные pools с отдельными credentials, network policy, autoscaling policy и cost attribution.
+
+**EXPERIMENT REQUIRED —** Future critic pool создаётся отдельно только после выбора и pin независимого checkpoint; его offline outputs проходят executable verification и не участвуют в live runtime или approval decisions.
 
 **RISK —** Прямой 480B/35B runtime требует отдельного H200 capacity plan. Default serving запрещён до подтверждения memory fit, throughput, latency и cost per verified task.
 
@@ -74,13 +78,15 @@
 
 **VERIFIED FACT —** Официальные card/config фиксируют causal LM, training stage `Pretraining & Post-training`, 480B total / 35B activated, 62 layers, hidden size 6144, GQA 96Q/8KV, head dimension 128, 160 routed experts, Top-8, no shared expert (`shared_expert_intermediate_size=0`), expert intermediate size 2560, vocabulary 151 936, native context 262 144, BF16 и Apache-2.0.
 
+**VERIFIED FACT —** Этот checkpoint является единственным прямым foundation E-01 и не является teacher. ADR-0006 фиксирует выбор foundation; ADR-0005 регулирует только возможный future critic.
+
 **ENGINEERING HYPOTHESIS —** E-01 сохраняет tokenizer и sparse architecture. Internal router и experts первоначально заморожены; identity/tool и enterprise behavior вводятся LoRA, SFT, preference optimization и executable GRPO.
 
-**ENGINEERING HYPOTHESIS —** Канонический lineage: frozen BF16 S0 → identity/tool LoRA → verified BF16 merge M1 → enterprise Action SFT LoRA → merge M2 → preference → GRPO → BF16 master M4 → FP8 serving derivative после parity.
+**ENGINEERING HYPOTHESIS —** Канонический lineage: `S0` frozen BF16 → `A1` identity/tool LoRA → `M1` verified BF16 merge → `A2` Enterprise Action SFT LoRA → `M2` verified BF16 merge → `A3` preference LoRA → `M3` verified BF16 merge → `A4` executable GRPO LoRA → `M4` release BF16 merge; FP8 — только serving derivative после parity.
 
 **EXPERIMENT REQUIRED —** Каждый merge проходит weight integrity, held-out coding, tool grammar, identity, governance и safety regression относительно frozen S0; FP8 не получает release status без BF16 parity.
 
-**RISK —** Broad CPT или раннее изменение router/experts может вызвать alignment loss, expert drift и catastrophic forgetting coding capability.
+**RISK —** Ошибка adapter/merge boundary, раннее изменение router/experts или опциональный DAPT без отдельного gate может вызвать alignment loss, expert drift и catastrophic forgetting coding capability.
 
 **VERIFIED FACT —** `Qwen/Qwen3-Coder-Next-Base` 80B/3B не является E-01 foundation и допустим только как исторически отвергнутая/альтернативная branch.
 
@@ -154,7 +160,7 @@ observed_delta_t = {changed_assets, test_results, side_effects,
 
 **ENGINEERING HYPOTHESIS —** Cross-tenant retrieval запрещён на уровне IAM и storage policy, а не только prompt-инструкцией.
 
-**ENGINEERING HYPOTHESIS —** Raw tenant data не используется для общего CPT/SFT/RL по умолчанию. Opt-in learning требует явного договора, dataset manifest, de-identification, purpose limitation, revocation policy и отдельного export pipeline.
+**ENGINEERING HYPOTHESIS —** Raw tenant data не используется для DAPT/SFT/preference/GRPO по умолчанию. Opt-in learning требует явного договора, dataset manifest, de-identification, purpose limitation, revocation policy и отдельного export pipeline.
 
 **RISK —** Shared cache может стать cross-tenant каналом. Prefix, repository-state и retrieval caches должны иметь tenant-keyed namespace; sensitive values не допускаются в telemetry.
 

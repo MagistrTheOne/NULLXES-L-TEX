@@ -11,14 +11,14 @@
 
 ## R-01 — деградация coding capability
 
-- **[RISK]** CPT/SFT/preference/RL может вызвать catastrophic forgetting, router degradation или over-specialization.
+- **[RISK]** Последовательные `A1` identity/tool, `A2` Enterprise Action SFT, `A3` preference и `A4` executable GRPO могут накопить catastrophic forgetting, identity drift, router degradation или over-specialization.
 - **[VERIFIED FACT]** Триггер: нижняя граница 95% CI по любой pre-registered coding-retention метрике ниже immutable baseline gate.
 - **[VERIFIED FACT]** Leading indicator: рост loss на held-out code slices, падение compile/test pass rate, увеличение edit churn или regression density.
-- **[ENGINEERING HYPOTHESIS]** Selective tuning, replay исходных code distributions и короткие staged runs ограничат деградацию лучше одного большого run.
-- **[VERIFIED FACT]** Mitigation: checkpoint cadence; retention eval на каждом promotion; data rebalancing; rollback к последнему прошедшему candidate; запрет release при gate breach.
+- **[ENGINEERING HYPOTHESIS]** Короткие adapter stages, frozen S0 comparison, replay исходных code distributions и отдельный gate перед каждым merge ограничат деградацию лучше одного сквозного run.
+- **[VERIFIED FACT]** Mitigation: immutable `S0/A1/M1/A2/M2/A3/M3/A4/M4`; retention eval до и после каждого merge; data rebalancing; rollback к последнему прошедшему master; запрет release при gate breach.
 - **[VERIFIED FACT]** Владелец: Research Lead.
 - **[VERIFIED FACT]** Acceptance: только residual P2 при отсутствии статистически подтверждённой регрессии и при прохождении двух clean runs.
-- **[EXPERIMENT REQUIRED]** Ablation CPT-only/SFT-only/combined и comparison с immutable base.
+- **[EXPERIMENT REQUIRED]** Stage-wise ablation `A1`, `A2`, `A3`, `A4` и comparison каждого `M1..M4` с immutable `S0` и непосредственным parent.
 
 ## R-02 — ложный VETCR и contamination
 
@@ -62,36 +62,36 @@
 - **[VERIFIED FACT]** Acceptance: residual P1 допускается только ниже 0,5% invalid calls и без P0/P1 side effects.
 - **[EXPERIMENT REQUIRED]** Tool fuzzing, stale-state race tests и recovery replay.
 
-## R-06 — невоспроизводимое обучение или inference
+## R-06 — merge corruption, невоспроизводимость или ложная FP8 parity
 
-- **[RISK]** Нефиксированные images, configs, seeds, data snapshots или runtime параметры делают результат недоказуемым.
-- **[VERIFIED FACT]** Триггер: artifact не имеет content hash, run невозможно восстановить из registry либо два clean runs расходятся за pre-registered tolerance.
-- **[VERIFIED FACT]** Leading indicator: manual config edits, mutable tags, missing environment capture, checkpoint/upload gaps, недетерминированный grader.
-- **[VERIFIED FACT]** Mitigation: immutable OCI digests, tracked manifests, dataset/checkpoint registry, seed policy, signed provenance, automated environment capture.
+- **[RISK]** Ошибочный BF16 merge, потерянный adapter, перенос optimizer state через boundary, нефиксированный runtime или promotion FP8 без parity может незаметно испортить release lineage.
+- **[VERIFIED FACT]** Триггер: отсутствует hash parent/adapter/merge output, adapter не сохранён, optimizer не reset, post-merge gate расходится с pre-merge tolerance, FP8 нарушает frozen BF16 parity либо run нельзя восстановить из registry.
+- **[VERIFIED FACT]** Leading indicator: manual config edits, mutable tags, weight delta вне ожидаемого range, load failures, checkpoint gaps, numerical drift, расхождение BF16/FP8 logits или task verdicts.
+- **[VERIFIED FACT]** Mitigation: immutable OCI digests; signed manifests `S0/A1/M1/A2/M2/A3/M3/A4/M4`; retained adapters; fresh optimizer на каждой стадии; deterministic BF16 merge; pre/post-merge regression; отдельный FP8 export и parity suite.
 - **[VERIFIED FACT]** Владелец: Platform Lead.
-- **[VERIFIED FACT]** Acceptance: residual P1 не принимается для release evidence; оба clean runs обязаны быть воспроизводимыми.
-- **[EXPERIMENT REQUIRED]** Restore-and-replay drill в отдельном RunPod H200 allocation.
+- **[VERIFIED FACT]** Acceptance: residual P1 не принимается; release parent остаётся BF16 `M4`, пока FP8 не прошёл numerical, load, latency и full LÆTEX-Bench parity.
+- **[EXPERIMENT REQUIRED]** Restore-and-replay каждого merge и независимый BF16-versus-FP8 parity run в отдельном RunPod H200 allocation.
 
-## R-07 — RunPod H200 capacity, network или storage failure
+## R-07 — недоступность RunPod capacity свыше 64 H200
 
-- **[RISK]** Недоступность H200, деградация InfiniBand/NVLink, storage bottleneck или spot interruption может сорвать run и бюджет.
-- **[VERIFIED FACT]** Триггер: allocation не соответствует manifest, throughput ниже budget floor, repeated NCCL faults, checkpoint SLA не выдержан.
-- **[VERIFIED FACT]** Leading indicator: queue delay, GPU utilization variance, network retries, storage read stalls, растущее время checkpoint.
-- **[VERIFIED FACT]** Mitigation: reserved H200 capacity для critical runs, topology validation, health checks, frequent resumable checkpoints, isolated object storage, budget kill conditions.
+- **[RISK]** Preference/GRPO или rollout topology может потребовать более 64 H200, тогда как публично документированный RunPod Instant Cluster envelope заканчивается на 64 GPU; capacity, InfiniBand и единый failure domain сверх этого размера не доказаны.
+- **[VERIFIED FACT]** Триггер: RunPod не подтверждает reserved allocation свыше 64 H200, topology не соответствует manifest, throughput ниже budget floor, возникают repeated NCCL faults или checkpoint SLA не выдержан.
+- **[VERIFIED FACT]** Leading indicator: отсутствие письменного capacity commitment, queue delay, cross-cluster topology ambiguity, GPU utilization variance, network retries, storage stalls и растущее время checkpoint.
+- **[VERIFIED FACT]** Mitigation: не запускать >64-H200 stage без provider attestation и reservation; topology/NCCL/storage preflight; frequent resumable checkpoints; isolated object storage; budget kill conditions; rollout и update pools разделять только по валидированному design.
 - **[VERIFIED FACT]** Владелец: Platform Lead.
-- **[VERIFIED FACT]** Acceptance: residual P2 принимается Program Owner только при сохранении 90-day critical path; смешанный или не-H200 кластер запрещён.
-- **[EXPERIMENT REQUIRED]** Throughput benchmark и node-failure recovery до production training.
+- **[VERIFIED FACT]** Acceptance: residual P2 принимается Program Owner только при подписанном capacity plan; mixed/non-H200 cluster и неподтверждённая агрегация нескольких allocations запрещены.
+- **[EXPERIMENT REQUIRED]** Throughput, cross-node collective и node-failure recovery benchmark на точной production topology до >64-H200 run.
 
-## R-08 — перерасход стоимости на verified task
+## R-08 — неработающая экономика 480B/35B
 
-- **[RISK]** Модель может проходить quality gates, но быть экономически хуже baseline из-за inference, retries, verification или operator labor.
-- **[VERIFIED FACT]** Триггер: верхняя граница 95% CI стоимости verified task выше pre-registered ceiling либо improvement против baseline не доказан.
-- **[VERIFIED FACT]** Leading indicator: рост tokens/task, tool retries, sandbox minutes, verifier fan-out, GPU idle time и human intervention.
-- **[ENGINEERING HYPOTHESIS]** Prefix/state caching, retrieval minimization и параллельная verification снизят стоимость без потери VETCR.
-- **[VERIFIED FACT]** Mitigation: end-to-end metering, cost attribution по task ID, caps, routing, caching, retry budget, stop-loss на H200 run.
+- **[RISK]** Прямой 480B/35B foundation может пройти quality gates, но проиграть baseline по cost per verified task из-за BF16/FP8 serving footprint, rollout generation, retries, verification и operator labor.
+- **[VERIFIED FACT]** Триггер: верхняя граница 95% CI стоимости verified task выше pre-registered ceiling, H200-hours на resolved task превышают budget либо VETCR uplift против baseline не доказан.
+- **[VERIFIED FACT]** Leading indicator: низкая batch occupancy, рост tokens/task, tool retries, rollout discard rate, sandbox minutes, verifier fan-out, GPU idle time и human intervention.
+- **[ENGINEERING HYPOTHESIS]** FP8 после parity, prefix/state caching, retrieval minimization, continuous batching и параллельная verification могут снизить стоимость без потери VETCR.
+- **[VERIFIED FACT]** Mitigation: end-to-end H200 metering, cost attribution по task ID и stage, caps, caching, retry/rollout budget, stop-loss до reservation и запрет production GO без clean economic runs.
 - **[VERIFIED FACT]** Владелец: Program Owner; технический со-владелец: Platform Lead.
 - **[VERIFIED FACT]** Acceptance: residual P1 допустим только для R&D continuation, но не для production GO.
-- **[EXPERIMENT REQUIRED]** Два clean cost runs на неизменном workload mix.
+- **[EXPERIMENT REQUIRED]** Два clean BF16/FP8 cost runs на неизменном workload mix с полной стоимостью training amortization, inference, verification и human review.
 
 ## R-09 — identity overwrite неполон
 

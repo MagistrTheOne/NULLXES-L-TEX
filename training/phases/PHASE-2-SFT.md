@@ -1,10 +1,17 @@
 # Phase 2 — Enterprise Action SFT
 
+## Canonical profiles and lineage position
+
+- **[VERIFIED FACT]** Action `A2`: [`../../infra/runpod/profiles/sft.yaml`](../../infra/runpod/profiles/sft.yaml).
+- **[VERIFIED FACT]** Separate BF16 merge `M2`: [`../../infra/runpod/profiles/merge-m2.yaml`](../../infra/runpod/profiles/merge-m2.yaml).
+- **[VERIFIED FACT]** Strict position: accepted `M1 → A2 → M2`; preference `A3` consumes only promoted `M2`.
+- **[RISK]** Missing, unsigned or hash-unpinned train/merge profile blocks the job. No run or gate pass is claimed here.
+
 ## Input, objective, output
 
 - **[VERIFIED FACT] Input:** accepted `M1` BF16, unchanged tokenizer, LÆTEX contracts, verified action examples и protected replay.
 - **[ENGINEERING HYPOTHESIS] Objective:** обучить enterprise action behavior, evidence discipline, tool recovery и escalation policy.
-- **[VERIFIED FACT] Output:** retained `A2`, BF16 `M2=M1+A2`, fresh optimizer record, merge parity и task evidence.
+- **[VERIFIED FACT] Output contract:** retained `A2`, then BF16 `M2=M1+A2`, fresh optimizer record, merge parity и task evidence.
 - **[RISK]** Generic synthetic conversations без executable evidence размоют coding behavior и не должны доминировать.
 
 ## Training recipe
@@ -44,4 +51,5 @@
 - **[RISK]** Архитектурное происхождение и inherited representations не «стираются»; запрещено утверждать pretraining from zero.
 - **[EXPERIMENT REQUIRED]** Проверить self-identification, indirect extraction, multilingual prompts, role conflicts, tool error paths и long-context identity drift.
 - **[VERIFIED FACT]** Stage 2 uses a fresh optimizer; Stage 1 optimizer state is not resumed. FP8 cannot parent `M2`.
+- **[VERIFIED FACT]** `A2` training и `M2` merge — separate H200 jobs; local model training/merge workloads запрещены.
 

@@ -3,10 +3,10 @@
 ## Назначение
 
 - **VERIFIED FACT:** LÆTEX Corpus разделён на CodeWorld, SystemWorld, Enterprise Voice, ActionWorld и GovernanceSet; объединение не отменяет отдельные лицензии, политики доступа и lineage.
-- **VERIFIED FACT:** Сырые данные клиента запрещено включать в общий checkpoint, teacher-корпус, replay buffer или shared eval.
+- **VERIFIED FACT:** Сырые данные клиента запрещено включать в общий checkpoint, future-critic corpus, replay buffer или shared eval.
 - **VERIFIED FACT:** Для любого объекта по умолчанию `training_allowed=false`; отсутствие поля трактуется как запрет.
 - **ENGINEERING HYPOTHESIS:** Первая полезная версия корпуса требует 65–75% проверенных синтетических объектов и 25–35% человеческих/open-source объектов; доля пересматривается после ablation.
-- **EXPERIMENT REQUIRED:** Доказать, что синтетика повышает VETCR на hidden-наборах, а не только имитирует teacher style.
+- **EXPERIMENT REQUIRED:** Доказать, что синтетика повышает VETCR на hidden-наборах, а не только имитирует стиль generator/critic.
 
 ## Единый pipeline допуска
 
@@ -33,7 +33,8 @@
 
 ## Первичные targets
 
-- **ENGINEERING HYPOTHESIS:** CPT: 20–50B high-quality лицензированных enterprise/code tokens после dedup.
+- **ENGINEERING HYPOTHESIS:** Broad CPT отсутствует в E-01; узкий DAPT отключён по умолчанию.
+- **EXPERIMENT REQUIRED:** Corpus size для опционального narrow DAPT остаётся `TBD_BY_PILOT` и фиксируется только после отдельного S0-based pilot с contamination, alignment, coding-retention, tool-grammar и cost gates.
 - **ENGINEERING HYPOTHESIS:** SFT: 180k–300k verified examples.
 - **ENGINEERING HYPOTHESIS:** Executable trajectories: 60k–120k.
 - **ENGINEERING HYPOTHESIS:** Failure/recovery trajectories: 20k–60k.

@@ -89,6 +89,7 @@ spec:
     tokenizer_change_allowed: false
   merge_policy:
     merge_dtype: bfloat16
+    bf16_only: true
     preserve_source_adapters: true
     immutable_parent_required: true
     write_new_immutable_artifact: true
@@ -127,4 +128,12 @@ spec:
     - {stage: M3-PREFERENCE-MERGED, manifest: stages/M3-PREFERENCE-MERGED.yaml}
     - {stage: A4-GRPO, manifest: stages/S4-GRPO.yaml}
     - {stage: M4-RELEASE, manifest: stages/M4-RELEASE.yaml}
-    - {stage: FP8-SERVING-DERIVATIVE, profile: ../infra/runpod/profiles/fp8-export.yaml}
+    - {stage: FP8-SERVING-DERIVATIVE, parent: M4-RELEASE, profile: ../infra/runpod/profiles/fp8-export.yaml}
+  lineage_policy:
+    order: sequential_train_verify_bf16_merge
+    train_stage_parent_must_be_previous_immutable_merge: true
+    all_stage_gates_must_pass_before_merge: true
+    fresh_optimizer_and_scheduler_per_training_stage: true
+    retained_adapters_required: [A1-IDENTITY, A2-ACTION-SFT, A3-PREFERENCE, A4-GRPO]
+    immutable_sha256_required_for_merge_outputs: [M1-IDENTITY-MERGED, M2-ACTION-MERGED, M3-PREFERENCE-MERGED, M4-RELEASE]
+    fp8_is_derivative_only: true

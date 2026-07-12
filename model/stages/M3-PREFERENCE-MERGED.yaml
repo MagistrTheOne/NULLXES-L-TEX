@@ -1,19 +1,19 @@
 apiVersion: nullxes.training-stage/v1
 kind: TrainingStage
 metadata:
-  id: M1-IDENTITY-MERGED
-  name: Merge identity adapter
+  id: M3-PREFERENCE-MERGED
+  name: Merge preference adapter
   status: planned
-  tags: [merge, identity, bfloat16, immutable, h200-only, not-run]
+  tags: [merge, preference, bfloat16, immutable, h200-only, not-run]
 spec:
   documentation_only: true
   execution_state: not_run
   input:
-    parent_artifact_id: artifact://latex-e01/S0-UPSTREAM/PENDING
-    parent_sha256: sha256:PENDING_S0
+    parent_artifact_id: artifact://latex-e01/M2-ACTION-MERGED/PENDING
+    parent_sha256: sha256:PENDING_M2
     adapters:
-      - {artifact_id: adapter://latex-e01/S1-IDENTITY/PENDING, sha256: "sha256:PENDING_S1"}
-  objective: Materialize the gate-passing identity delta as a new immutable BF16 parent.
+      - {artifact_id: adapter://latex-e01/S3-PREFERENCE/PENDING, sha256: "sha256:PENDING_S3"}
+  objective: Materialize the gate-passing preference delta as a new immutable BF16 parent.
   trainable_scope:
     method: none
     modules: []
@@ -29,14 +29,14 @@ spec:
     accelerator: NVIDIA_H200
     local_execution: forbidden
   gates:
-    - {id: source_gate, metric: S1_all_gates_passed, operator: eq, threshold: true}
-    - {id: source_precision, metric: parent_dtype_is_bfloat16, operator: eq, threshold: true}
+    - {id: source_gate, metric: S3_all_gates_passed, operator: eq, threshold: true}
+    - {id: source_precision, metric: parent_and_adapter_merge_compute_are_bfloat16, operator: eq, threshold: true}
     - {id: token_parity, metric: deterministic_token_agreement_vs_composed_adapter, operator: gte, threshold: 0.999}
-    - {id: score_parity, metric: max_absolute_benchmark_delta_percentage_points, operator: lte, threshold: 0.2}
+    - {id: preference_parity, metric: max_absolute_preference_metric_delta_percentage_points, operator: lte, threshold: 0.2}
     - {id: immutable_hash, metric: new_artifact_sha256_recorded, operator: eq, threshold: true}
   merge_policy:
     action: merge
-    adapters_to_merge: [S1-IDENTITY]
+    adapters_to_merge: [S3-PREFERENCE]
     merge_dtype: bfloat16
     bf16_only: true
     preserve_adapters: true
@@ -44,9 +44,9 @@ spec:
     require_new_immutable_parent_hash: true
     forbidden_source_precisions: [float8, int8, int4]
   outputs:
-    artifact_id: artifact://latex-e01/M1-IDENTITY-MERGED/PENDING
+    artifact_id: artifact://latex-e01/M3-PREFERENCE-MERGED/PENDING
     artifact_sha256: sha256:PENDING_NEW_PARENT
     immutable: true
-    preserved_adapter_id: adapter://latex-e01/S1-IDENTITY/PENDING
-    evidence_id: evidence://latex-e01/M1-IDENTITY-MERGED/NOT_RUN
-    run_id: run://NOT_RUN/M1-IDENTITY-MERGED
+    preserved_adapter_id: adapter://latex-e01/S3-PREFERENCE/PENDING
+    evidence_id: evidence://latex-e01/M3-PREFERENCE-MERGED/NOT_RUN
+    run_id: run://NOT_RUN/M3-PREFERENCE-MERGED

@@ -29,7 +29,9 @@ spec:
   runtime:
     provider: RunPod
     accelerator: NVIDIA_H200
-    topology: HGX_H200_NVLink_NVSwitch_InfiniBand
+    provider_attestation_required:
+      intra_node: NVLink_NVSwitch
+      inter_node: InfiniBand
     local_execution: forbidden
   gates:
     - {id: latex_identity, metric: correct_self_identity_rate, operator: gte, threshold: 0.995}
@@ -40,8 +42,11 @@ spec:
     - {id: safety_retention, metric: critical_governance_regressions, operator: eq, threshold: 0}
   merge_policy:
     action: defer_to_M1
+    required_merge_stage: M1-IDENTITY-MERGED
     merge_dtype: bfloat16
+    bf16_only: true
     preserve_adapter: true
+    require_new_immutable_parent_hash: true
     quantized_merge: forbidden
   outputs:
     artifact_id: adapter://latex-e01/S1-IDENTITY/PENDING

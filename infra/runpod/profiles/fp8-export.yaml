@@ -1,0 +1,63 @@
+schema: laetex.runpod.profile/v2
+name: fp8-export
+enabled: true
+phase: 6-export
+classification: EXPERIMENT_REQUIRED
+purpose: "Convert immutable M4 BF16 into a derived FP8 inference export and require BF16 parity."
+foundation:
+  repo: Qwen/Qwen3-Coder-480B-A35B-Instruct
+  role: frozen_release_source
+  teacher: none
+  master_precision: BF16
+  parent: M4-bf16
+platform:
+  provider: RunPod
+  cloud: Secure Cloud
+  local_model_workloads: forbidden
+  deployment: {minimum: instant-cluster, recommended: instant-cluster}
+compute:
+  gpu: {model: NVIDIA H200 SXM, hbm_gb: 141, gpus_per_node: 8}
+  minimum: {gpus: 16, nodes: 2}
+  recommended: {gpus: 32, nodes: 4}
+  precision: "M4 source BF16; derived output FP8 inference-only"
+parallelism:
+  minimum: {world_size: 16, TP: 8, PP: 2, CP: 1, DP: 1, EP: 1}
+  recommended: {world_size: 32, TP: 8, PP: 2, CP: 1, DP: 2, EP: 1}
+  world_size_rule: "world_size=TP*PP*CP*DP; EP is not an extra multiplier"
+  ep_semantics: "Frozen conversion and inference parity path; EP=1"
+network:
+  required: "Provider-attested NVLink/NVSwitch intra-node and provider-attested InfiniBand inter-node"
+  acceptance: "Written provider fabric/topology attestation, NCCL/load parity, identical source hash and zero XID/ECC errors"
+storage:
+  working_set: "RunPod Network Volume /workspace; checksum-bound M4 BF16 and calibration/eval cache"
+  durable_registry: "External encrypted immutable registry for M4, FP8 export, calibration and parity evidence"
+  local_scratch: ephemeral_only
+checkpoint:
+  input: "Immutable M4 BF16 source hash; M4 remains release source of truth"
+  output: "Derived FP8 inference export hash and signed parity manifest; never a training or merge parent"
+  cadence: "No periodic checkpoint; atomic export followed by reload and parity evaluation"
+  retention: "M4 BF16, FP8 export, conversion manifest, calibration lineage and all parity evidence"
+  optimizer_policy: "No optimizer or scheduler; training and merge disabled"
+wall_clock:
+  tag: ENGINEERING_HYPOTHESIS
+  estimate: "1-3 days including conversion, reload and full parity"
+metrics:
+  primary: fp8_bf16_parity
+  exact_gate: "Full BF16-vs-FP8 regression passes frozen per-slice tolerances; critical failures=0; audit/replay=100%"
+stop_conditions:
+  - "M4 source hash mismatch, calibration lineage gap, load failure or parity failure"
+  - "Any attempt to promote FP8 as a training or merge parent"
+economic_gate: "Export only if measured latency/cost gain is positive after full BF16 parity."
+artifacts:
+  - M4-derived-fp8-inference-export
+  - fp8-conversion-and-calibration-manifest
+  - fp8-vs-bf16-full-parity-report
+validation:
+  profile_only: true
+  checks:
+    - "16=8*2*1*1 and 32=8*2*1*2"
+    - "Source is immutable M4 BF16"
+    - "FP8 parity required; FP8 is never a training or merge parent"
+assumptions:
+  - {tag: EXPERIMENT_REQUIRED, statement: "H200 FP8 kernels produce a material serving gain within frozen quality tolerances."}
+  - {tag: RISK, statement: "FP8 parity may fail; M4 BF16 remains unaffected and authoritative."}

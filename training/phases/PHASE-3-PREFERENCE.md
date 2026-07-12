@@ -1,10 +1,17 @@
 # Phase 3 — Preference Optimization
 
+## Canonical profiles and lineage position
+
+- **[VERIFIED FACT]** Preference `A3`: [`../../infra/runpod/profiles/preference.yaml`](../../infra/runpod/profiles/preference.yaml).
+- **[VERIFIED FACT]** Separate BF16 merge `M3`: [`../../infra/runpod/profiles/merge-m3.yaml`](../../infra/runpod/profiles/merge-m3.yaml).
+- **[VERIFIED FACT]** Strict position: accepted `M2 → A3 → M3`; Phase 3 is incomplete until merged `M3` passes load and protected parity.
+- **[RISK]** Missing, unsigned or hash-unpinned train/merge profile blocks the job. No run or gate pass is claimed here.
+
 ## Input, objective, output
 
 - **[VERIFIED FACT] Input:** accepted `M2` BF16, immutable pairs, `M2`-hash-bound cached reference log-probabilities, executable outcomes и disagreement records.
 - **[ENGINEERING HYPOTHESIS] Objective:** предпочитать verified completion, минимальный достаточный action set, evidence-backed report, safe refusal/escalation и recovery.
-- **[VERIFIED FACT] Output:** retained `A3`, BF16 `M3=M2+A3`, fresh optimizer record, pair lineage, KL/safety и merge parity.
+- **[VERIFIED FACT] Output contract:** retained `A3`, then BF16 `M3=M2+A3`, fresh optimizer record, pair lineage, KL/safety и merge parity. `M3` is the only valid Phase 4 policy parent.
 - **[RISK]** Style-only preferences не являются enterprise outcome и должны иметь нулевой или низкий weight.
 
 ## Method selection
@@ -42,4 +49,5 @@
 - **[VERIFIED FACT]** Separate critic is `none` by default. Same upstream foundation cannot be relabeled as teacher.
 - **[RISK]** Любой critic требует отдельного approval, checkpoint, H200 budget, evaluation stratum и lineage; он не выставляет final correctness label.
 - **[VERIFIED FACT]** Stage 3 optimizer fresh; FP8 не может быть parent `M3`.
+- **[VERIFIED FACT]** `A3` training и `M3` merge — separate H200 jobs; локальные model workloads запрещены.
 
