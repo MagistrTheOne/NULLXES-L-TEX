@@ -1,0 +1,60 @@
+schema: laetex.runpod.profile/v1
+name: preference
+phase: 3
+classification: ENGINEERING_HYPOTHESIS
+purpose: "Offline preference optimization по verified outcomes, evidence quality и safe action policy."
+platform:
+  provider: RunPod
+  cloud: Secure Cloud
+  deployment: {minimum: secure-cloud-pod, recommended: instant-cluster}
+  local_model_workloads: forbidden
+compute:
+  gpu: {model: NVIDIA H200 SXM, hbm_gb: 141}
+  minimum_gpus: 8
+  recommended_gpus: 32
+  minimum_nodes: 1
+  recommended_nodes: 4
+  gpus_per_node: 8
+  precision: BF16
+parallelism:
+  minimum: {TP: 2, PP: 1, EP: 4, CP: 1, DP: 4}
+  recommended: {TP: 2, PP: 1, EP: 8, CP: 1, DP: 16}
+  note: "Reference log-probabilities precomputed; world size validated as TP×PP×CP×DP."
+network:
+  intra_node: NVLink/NVSwitch
+  inter_node: "Required before run: provider-attested InfiniBand/high-bandwidth fabric on RunPod ens*; external docs do not attest this allocation"
+  acceptance: "IB/NCCL pass plus pair-order integrity check"
+storage:
+  working_set: "/workspace Network Volume: chosen/rejected pairs, cached reference log-probs"
+  durable_registry: "External encrypted object store: immutable pair lineage and checkpoints"
+  minimum_working_set_tb: 4
+  recommended_working_set_tb: 8
+checkpoint:
+  format: "Adapter/trainable state + optimizer + pair cursor"
+  cadence: "Every 500 steps or 2 hours"
+  retained: "last 3 + best VETCR/safety Pareto checkpoint"
+wall_clock:
+  tag: ENGINEERING_HYPOTHESIS
+  estimate: "1–4 days per method; 3–8 days for controlled three-method ablation"
+metrics:
+  primary: "Held-out verified preference accuracy"
+  exact_gate: ">=65% pair accuracy, >=5% relative VETCR gain vs SFT, zero increase in unsafe-action execution rate"
+stop_conditions:
+  - "KL exceeds approved band in two evaluations"
+  - "Unsafe-action execution rate rises above SFT"
+  - ">2 pp protected coding regression"
+economic_gate: "Proceed only if pair-label inter-rater agreement >=0.8 or executable verifier adjudicates the outcome."
+artifacts:
+  - "preference-adapter-bundle"
+  - "pair-lineage-manifest"
+  - "KL-and-safety-report"
+validation:
+  schema_checks:
+    - "Cached reference hash matches SFT policy"
+    - "No online teacher dependency"
+    - "No secrets or tenant leakage"
+  status: documentation_profile_not_provisioning
+assumptions:
+  - {tag: EXPERIMENT_REQUIRED, statement: "Выбрать DPO/IPO/ORPO по controlled ablation, а не заранее."}
+  - {tag: RISK, statement: "Синтетические preferences могут закрепить teacher bias."}
+

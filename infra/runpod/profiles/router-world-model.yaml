@@ -1,0 +1,62 @@
+schema: laetex.runpod.profile/v1
+name: router-world-model
+phase: 5
+classification: EXPERIMENT_REQUIRED
+purpose: "Обучение Top-2 adapter router + shared Evidence/Policy adapter и compact World Model V1."
+platform:
+  provider: RunPod
+  cloud: Secure Cloud
+  deployment: {minimum: secure-cloud-pod, recommended: instant-cluster}
+  local_model_workloads: forbidden
+compute:
+  gpu: {model: NVIDIA H200 SXM, hbm_gb: 141}
+  minimum_gpus: 8
+  recommended_gpus: 32
+  minimum_nodes: 1
+  recommended_nodes: 4
+  gpus_per_node: 8
+  precision: BF16
+parallelism:
+  minimum: {TP: 1, PP: 1, EP: 1, CP: 1, DP: 8}
+  recommended: {TP: 2, PP: 1, EP: 1, CP: 1, DP: 16}
+  note: "Separate jobs: router DP-first; 1.5–3B transition model TP/DP. Base-MoE EP не смешивается с adapter-router semantics."
+network:
+  intra_node: NVLink/NVSwitch
+  inter_node: "Required before run: provider-attested InfiniBand/high-bandwidth fabric on RunPod ens*; external docs do not attest this allocation"
+  acceptance: "IB/NCCL parity, state serialization and event-ledger replay tests"
+storage:
+  working_set: "/workspace Network Volume: state/action/outcome traces and adapter packs"
+  durable_registry: "External encrypted object store: trace lineage, router, World Model, calibration artifacts"
+  minimum_working_set_tb: 4
+  recommended_working_set_tb: 10
+checkpoint:
+  format: "Independent router and transition-model checkpoints with shared schema hash"
+  cadence: "Every 1,000 steps or 2 hours"
+  retained: "last 3 + best calibrated checkpoint per model"
+wall_clock:
+  tag: ENGINEERING_HYPOTHESIS
+  estimate: "Router 1–3 days; V1 3–10 days; combined ablations 7–18 days"
+metrics:
+  primary: "Joint routing/state-transition acceptance"
+  exact_gate: "Top-2 route recall >=90%; no expert receives >35% routes; delta exact-match >=80%; risk AUROC >=0.90; ECE <=0.05"
+stop_conditions:
+  - "Router collapse threshold breached twice"
+  - "World Model consumes unversioned state"
+  - "Calibration worsens for two evaluations"
+economic_gate: "Learned V1 proceeds only if it beats graph+ledger+policy V0 by >=5 pp on held-out transition/risk decisions."
+artifacts:
+  - "adapter-router"
+  - "routing-audit-schema"
+  - "world-model-v1-checkpoint"
+  - "calibration-and-ablation-report"
+validation:
+  schema_checks:
+    - "Router and base MoE metrics are namespaced separately"
+    - "State schema hash required"
+    - "No hallucinated state accepted without ledger evidence"
+    - "No secrets"
+  status: documentation_profile_not_provisioning
+assumptions:
+  - {tag: ENGINEERING_HYPOTHESIS, statement: "8 H200 — minimum для router/compact model; 32 ускоряют ablations."}
+  - {tag: RISK, statement: "Learned World Model может не превзойти deterministic V0."}
+

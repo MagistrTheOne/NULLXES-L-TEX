@@ -1,0 +1,63 @@
+schema: laetex.runpod.profile/v1
+name: baseline
+phase: 0
+classification: EXPERIMENT_REQUIRED
+purpose: "Воспроизводимая pre-training baseline evaluation без изменения весов."
+platform:
+  provider: RunPod
+  cloud: Secure Cloud
+  deployment: {minimum: secure-cloud-pod, recommended: instant-cluster}
+  local_model_workloads: forbidden
+compute:
+  gpu:
+    model: NVIDIA H200 SXM
+    hbm_gb: 141
+  minimum_gpus: 16
+  recommended_gpus: 32
+  minimum_nodes: 2
+  recommended_nodes: 4
+  gpus_per_node: 8
+  precision: BF16
+parallelism:
+  minimum: {TP: 4, PP: 1, EP: 1, CP: 1, DP: 4}
+  recommended: {TP: 4, PP: 1, EP: 1, CP: 1, DP: 8}
+  note: "TP×PP×CP×DP=16/32; EP=1 для inference mapping."
+network:
+  intra_node: NVLink/NVSwitch
+  inter_node: "Required before run: provider-attested InfiniBand/high-bandwidth fabric on RunPod ens*; external documentation and the 3200 Gbps public figure do not attest this allocation"
+  acceptance: "Provider IB attestation, NCCL collectives, no eth0 fallback, zero XID/ECC errors"
+storage:
+  working_set: "RunPod Network Volume mounted at /workspace"
+  durable_registry: "External encrypted object store with versioning and immutable manifests"
+  local_scratch: ephemeral_only
+checkpoint:
+  source: "Immutable upstream base snapshot + tokenizer hash"
+  writes: "No model checkpoint; eval state and resumable task ledger only"
+wall_clock:
+  tag: ENGINEERING_HYPOTHESIS
+  estimate: "12–36 hours for the first full suite; refine after 100-task pilot"
+metrics:
+  primary: "VETCR_baseline"
+  exact_gate: "100% task-attempt accounting; grader replay mismatch = 0"
+stop_conditions:
+  - "Any dataset/checkpoint checksum mismatch"
+  - "Any model weight mutation"
+  - "Evaluation harness nondeterminism above declared tolerance"
+economic_gate: "Run only after held-out suite, graders and decision thresholds are frozen."
+artifacts:
+  - "baseline-results.jsonl"
+  - "grader-replay-bundle"
+  - "latency-cost-manifest"
+validation:
+  schema_checks:
+    - "H200 SXM and 141 GB only"
+    - "RunPod H200 Instant Cluster: 16 GPU minimum, 32 GPU recommended"
+    - "No secrets or embedded credentials"
+    - "Network Volume plus external registry required"
+  status: documentation_profile_not_provisioning
+assumptions:
+  - tag: ENGINEERING_HYPOTHESIS
+    statement: "16 H200 — minimum baseline replay; 32 H200 дают parallel replay в Instant Cluster."
+  - tag: RISK
+    statement: "Фактические throughput и стоимость неизвестны до Phase 0."
+

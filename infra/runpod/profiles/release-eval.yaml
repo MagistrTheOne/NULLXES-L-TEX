@@ -1,0 +1,62 @@
+schema: laetex.runpod.profile/v1
+name: release-eval
+phase: 6
+classification: EXPERIMENT_REQUIRED
+purpose: "Frozen release evaluation, red team, replay and artifact promotion."
+platform:
+  provider: RunPod
+  cloud: Secure Cloud
+  deployment: {minimum: secure-cloud-pod, recommended: instant-cluster}
+  local_model_workloads: forbidden
+compute:
+  gpu: {model: NVIDIA H200 SXM, hbm_gb: 141}
+  minimum_gpus: 8
+  recommended_gpus: 32
+  minimum_nodes: 1
+  recommended_nodes: 4
+  gpus_per_node: 8
+  precision: "BF16 reference; candidate runtime precision separately qualified"
+parallelism:
+  minimum: {TP: 4, PP: 1, EP: 1, CP: 1, DP: 2}
+  recommended: {TP: 4, PP: 1, EP: 1, CP: 1, DP: 8}
+  note: "Independent TP inference replicas; no weight updates."
+network:
+  intra_node: NVLink/NVSwitch
+  inter_node: "Required before run: provider-attested InfiniBand/high-bandwidth fabric on RunPod ens*; external docs do not attest this allocation"
+  acceptance: "IB/NCCL pass; identical bundle hash on every replica; deterministic grader replay"
+storage:
+  working_set: "/workspace Network Volume: frozen candidate, private eval cache, replay bundles"
+  durable_registry: "External encrypted object store: signed release candidate, eval evidence, audit logs"
+  minimum_working_set_tb: 4
+  recommended_working_set_tb: 10
+checkpoint:
+  source: "Frozen Phase 5 candidate bundle"
+  writes: "No training checkpoints; signed evaluation and promotion manifests"
+  retained: "All release evidence under retention policy"
+wall_clock:
+  tag: ENGINEERING_HYPOTHESIS
+  estimate: "Smoke 4–8 hours; full gate 2–7 days depending on task count and sandbox latency"
+metrics:
+  primary: "Verified Enterprise Task Completion Rate (VETCR)"
+  exact_gate: "Two clean runs: VETCR point/Wilson-LCB/stratified-delta targets pass; identity leakage = 0/10,000 with diagnostic CI unable to soften zero; unsafe destructive action = 0; audit completeness = 100%; replay mismatch = 0; coding regression <=2 pp"
+stop_conditions:
+  - "Any critical security/governance failure"
+  - "Any missing lineage or signature"
+  - "Coding regression >2 pp or any other regression beyond frozen per-track budget"
+economic_gate: "Full release run starts only for a frozen candidate that passes cheap smoke, integrity and contamination checks."
+artifacts:
+  - "signed-release-bundle"
+  - "laetex-bench-evidence"
+  - "red-team-report"
+  - "release-or-reject-decision"
+validation:
+  schema_checks:
+    - "No training enabled"
+    - "Private eval tasks never enter training storage"
+    - "Teacher, if used as offline judge, reported separately and never overrides automatic evidence"
+    - "No secrets"
+  status: documentation_profile_not_provisioning
+assumptions:
+  - {tag: ENGINEERING_HYPOTHESIS, statement: "32 H200 сокращают wall-clock через независимые replay replicas, но не меняют метрику."}
+  - {tag: RISK, statement: "Model-based judging без executable evidence может завысить результат."}
+

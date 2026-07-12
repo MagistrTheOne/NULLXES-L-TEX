@@ -1,0 +1,63 @@
+schema: laetex.runpod.profile/v1
+name: cpt
+phase: 1
+classification: ENGINEERING_HYPOTHESIS
+purpose: "Continued pretraining Qwen3-Coder-Next-Base на лицензированном enterprise/code corpus."
+platform:
+  provider: RunPod
+  cloud: Secure Cloud
+  deployment: {minimum: instant-cluster, recommended: instant-cluster}
+  local_model_workloads: forbidden
+compute:
+  gpu: {model: NVIDIA H200 SXM, hbm_gb: 141}
+  minimum_gpus: 32
+  recommended_gpus: 64
+  minimum_nodes: 4
+  recommended_nodes: 8
+  gpus_per_node: 8
+  precision: "BF16 baseline; FP8 only after parity experiment"
+parallelism:
+  minimum: {TP: 2, PP: 2, EP: 8, CP: 1, DP: 8}
+  recommended: {TP: 2, PP: 2, EP: 8, CP: 2, DP: 8}
+  note: "World size: 32/64 via TP×PP×CP×DP; EP divides expert data-parallel domain and requires Megatron validation."
+network:
+  intra_node: NVLink/NVSwitch
+  inter_node: "Required before run: provider-attested InfiniBand/high-bandwidth fabric on RunPod ens1-ens8; external docs do not attest this allocation"
+  acceptance: "IB device/link proof; NCCL all-reduce and MoE all-to-all >=80% of internal accepted baseline"
+storage:
+  working_set: "/workspace on high-performance RunPod Network Volume; packed immutable shards"
+  durable_registry: "External encrypted object store: source, data manifests, checkpoints, lineage"
+  minimum_working_set_tb: 8
+  recommended_working_set_tb: 20
+checkpoint:
+  format: distributed
+  cadence: "Every 250 optimizer steps or 2 hours, whichever comes first"
+  retained: "last 3 + daily + metric-best; durable promotion only after resume test"
+  state: "weights, optimizer, scheduler, RNG, data cursor, router statistics"
+wall_clock:
+  tag: ENGINEERING_HYPOTHESIS
+  estimate: "20B tokens: 7–21 days on 64 H200; not a benchmark before measured tokens/s"
+metrics:
+  primary: "Held-out enterprise-code NLL"
+  exact_gate: ">=3% relative NLL improvement and <=2 pp VETCR regression versus Phase 0"
+stop_conditions:
+  - "NaN/Inf or unrecoverable divergence"
+  - ">2 pp VETCR regression at two consecutive evals"
+  - ">30% experts below 5% normalized utilization for two eval windows"
+economic_gate: "Scale beyond minimum only after 1% token pilot predicts target gain within approved cost/task envelope."
+artifacts:
+  - "cpt-checkpoint"
+  - "optimizer-resume-state"
+  - "data-lineage-manifest"
+  - "capability-regression-report"
+validation:
+  schema_checks:
+    - "GPU counts are 32 or 64 H200"
+    - "TP×PP×CP×DP equals world size"
+    - "EP compatibility dry-run required"
+    - "No secrets; external durable registry required"
+  status: documentation_profile_not_provisioning
+assumptions:
+  - {tag: EXPERIMENT_REQUIRED, statement: "Подтвердить selective/full parameter set и memory model на synthetic optimizer step."}
+  - {tag: RISK, statement: "64 H200 не гарантируют экономическую целесообразность без pilot scaling curve."}
+

@@ -1,0 +1,62 @@
+schema: laetex.runpod.profile/v1
+name: grpo
+phase: 4
+classification: EXPERIMENT_REQUIRED
+purpose: "GRPO в executable sandboxes с reward только за проверяемый state delta."
+platform:
+  provider: RunPod
+  cloud: Secure Cloud
+  deployment: {minimum: instant-cluster, recommended: instant-cluster}
+  local_model_workloads: forbidden
+compute:
+  gpu: {model: NVIDIA H200 SXM, hbm_gb: 141}
+  minimum_gpus: 32
+  recommended_gpus: 64
+  minimum_nodes: 4
+  recommended_nodes: 8
+  gpus_per_node: 8
+  precision: BF16
+parallelism:
+  minimum: {TP: 2, PP: 1, EP: 8, CP: 1, DP: 16}
+  recommended: {TP: 2, PP: 1, EP: 8, CP: 1, DP: 32}
+  note: "Logical partition of policy/update and rollout ranks is run-specific; total world size remains 32/64."
+network:
+  intra_node: NVLink/NVSwitch
+  inter_node: "Required before run: provider-attested InfiniBand/high-bandwidth fabric on RunPod ens*; external docs do not attest this allocation; rollout control isolated"
+  acceptance: "IB/NCCL pass, sandbox isolation test, reward replay determinism"
+storage:
+  working_set: "/workspace Network Volume: rollout queue, immutable task snapshots, transient trajectories"
+  durable_registry: "External encrypted object store: accepted trajectories, reward evidence, policy checkpoints"
+  minimum_working_set_tb: 8
+  recommended_working_set_tb: 20
+checkpoint:
+  format: "Policy adapter/trainable state, optimizer, scheduler, RNG, rollout cursor"
+  cadence: "Every 100 update steps or 60 minutes"
+  retained: "last 5 + best constrained-reward checkpoint"
+wall_clock:
+  tag: ENGINEERING_HYPOTHESIS
+  estimate: "Pilot 2–5 days; gated production 7–21 days depending on sandbox latency"
+metrics:
+  primary: "Executable verified completion rate after tool failure"
+  exact_gate: ">=8% relative VETCR gain vs preference model; unsafe side-effect rate = 0; recovery success >=60%"
+stop_conditions:
+  - "Any uncontained destructive side effect"
+  - "Reward hacking confirmed on >=2 distinct tasks"
+  - "KL exceeds approved bound or protected coding regression exceeds 2 pp twice"
+economic_gate: "Scale only after 1,000-task pilot shows positive lower 95% confidence bound on verified completion gain."
+artifacts:
+  - "grpo-policy-bundle"
+  - "replayable-trajectory-corpus"
+  - "reward-integrity-report"
+  - "sandbox-security-report"
+validation:
+  schema_checks:
+    - "Sandbox has no production credentials"
+    - "Reward derives from tests/policy/evidence, not teacher prose alone"
+    - "Teacher absent from live rollout path"
+    - "No secrets"
+  status: documentation_profile_not_provisioning
+assumptions:
+  - {tag: ENGINEERING_HYPOTHESIS, statement: "Adapter-first GRPO снижает optimizer-memory и catastrophic forgetting."}
+  - {tag: RISK, statement: "RL нестабилен и может быть экономически хуже additional verified SFT."}
+
