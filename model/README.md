@@ -52,5 +52,6 @@ world size 1024 при `CP=DP=1`. Поэтому 512 H200 — минимальн
 Предыдущие derivative stage contracts выведены из canonical namespace и
 инвентаризированы в
 [`historical/qwen-derivative-e01/MANIFEST.yaml`](historical/qwen-derivative-e01/MANIFEST.yaml).
-Файл `latex-e01-480a35.yaml` не редактируется этим change set и не является
-parent/source-of-truth для нового target lane.
+Канонический architecture contract target lane:
+[`latex-e01-480a35.yaml`](latex-e01-480a35.yaml)
+(`provenance.weight_parent: null`, independent random init).

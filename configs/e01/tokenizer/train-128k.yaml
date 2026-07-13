@@ -1,7 +1,7 @@
 schema: laetex.tokenizer.training/v1
 name: laetex-independent-byte-bpe-128k
 classification: EXPERIMENT_REQUIRED
-scope: "Independent LÆTEX tokenizer research; forbidden as an E-01 tokenizer replacement."
+scope: "Independent LÆTEX E-01 tokenizer training contract (ADR-0008); RunPod-only for production."
 
 execution:
   production_provider: RunPod
