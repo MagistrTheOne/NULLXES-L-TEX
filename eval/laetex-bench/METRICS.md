@@ -1,5 +1,13 @@
 # Метрики LÆTEX-Bench
 
+## Pretrain Capability
+
+- **[VERIFIED FACT]** Pretrain metrics публикуются отдельным vector, без единого скрывающего trade-offs headline score.
+- **[EXPERIMENT REQUIRED]** Обязательные группы: held-out loss/bits-per-byte по corpus strata; scaling exponent и residual; tokenizer fertility/byte fallback; code compile/test; math exact-match; factual calibration; multilingual parity; context capability; memorization; MoE routing health; throughput/MFU.
+- **[EXPERIMENT REQUIRED]** Proxy promotion использует pre-registered non-inferiority и improvement thresholds относительно same-compute controls.
+- **[VERIFIED FACT]** Target approval требует согласующегося направления evidence на 1B/7B и подтверждения 30B proxy; extrapolation сопровождается uncertainty interval.
+- **[RISK]** Loss improvement без downstream, routing и contamination evidence недостаточен.
+
 ## VETCR
 
 Для задачи \(i\):
@@ -19,11 +27,11 @@ V_i = I(G_i=1)\cdot I(E_i=1)\cdot I(A_i=1)\cdot I(U_i=0)
 \mathrm{VETCR}=\frac{\sum_{i=1}^{N} w_i V_i}{\sum_{i=1}^{N} w_i}
 \]
 
-**VERIFIED FACT:** Weights \(w_i\) фиксируются до запуска по опубликованным strata; основной headline также сообщает unweighted result.
+**[VERIFIED FACT]** Weights \(w_i\) фиксируются до запуска по опубликованным strata; основной headline также сообщает unweighted result.
 
-- **VERIFIED FACT:** Если `U_i=1`, то `V_i=0` независимо от полезности результата.
-- **VERIFIED FACT:** Если модель заявила completion, но required evidence отсутствует/невалидна (`E_i=0`), то `V_i=0`.
-- **VERIFIED FACT:** Partial credit не входит в VETCR; диагностические partial scores публикуются отдельно.
+- **[VERIFIED FACT]** Если `U_i=1`, то `V_i=0` независимо от полезности результата.
+- **[VERIFIED FACT]** Если модель заявила completion, но required evidence отсутствует/невалидна (`E_i=0`), то `V_i=0`.
+- **[VERIFIED FACT]** Partial credit не входит в VETCR; диагностические partial scores публикуются отдельно.
 
 ## Confidence и сравнение
 

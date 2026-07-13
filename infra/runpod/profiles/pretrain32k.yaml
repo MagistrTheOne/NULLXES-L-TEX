@@ -1,0 +1,19 @@
+schema: laetex.runpod.profile/v3
+name: pretrain32k
+enabled: true
+stage: LC32K
+classification: EXPERIMENT_REQUIRED
+purpose: "Continue accepted target pretraining at 32768 tokens."
+platform: {provider: RunPod, cloud: Secure Cloud, accelerator: NVIDIA H200, local_model_workloads: forbidden}
+compute: {minimum: {world_size: 512, nodes: 64}, recommended: {world_size: 1024, nodes: 128}, precision: "BF16 master"}
+parallelism:
+  minimum: {TP: 8, PP: 8, EP: 8, CP: 1, DP: 1}
+  recommended: {TP: 8, PP: 8, EP: 8, CP: 2, DP: 1}
+  rule: "world_size=TP*PP*EP*CP*DP"
+  note: "EP16 with TP8/PP8/CP2 would require 2048 ranks; 1024 uses EP8."
+network: {required: "provider-attested NVLink/NVSwitch and InfiniBand", acceptance: "NCCL all-to-all plus CP and loss parity"}
+storage: {working: "RunPod Network Volume plus ephemeral NVMe cache", durable_source_of_truth: "external encrypted versioned object store"}
+checkpoint: {input: "accepted P0 BF16 full state", output: "LC32K BF16 full state", cadence: "measured time/token interval", cold_restore_required: true}
+wall_clock: {classification: ENGINEERING_HYPOTHESIS, estimate: "TBD by measured 32K tokens/s"}
+gate: "32K gain, short-context noninferiority, memory/MFU and cold restore pass"
+economic_gate: "Proceed only if 32K tasks justify incremental H200 cost over retrieval."

@@ -1,48 +1,49 @@
-# Speed / cost / quality strategy
+# Independent E-01 — speed / cost / quality strategy
 
-## Статус
+## Status
 
-- **[VERIFIED FACT]** Direct E-01 foundation — `Qwen/Qwen3-Coder-480B-A35B-Instruct`; 80B Base не является baseline или runtime target.
-- **[ENGINEERING HYPOTHESIS]** 480B параметров × 2 bytes дают около `960 GB` theoretical raw BF16 weights; это не включает runtime overhead, KV cache, activations, allocator reserve или replicas.
-- **[VERIFIED FACT]** Training, merge validation, candidate inference и release evaluation выполняются только на H200; локальный control plane не хранит и не запускает weights.
-- **[VERIFIED FACT]** В этом документе нет benchmark results. Все числовые latency targets ниже — целевые инженерные гипотезы до воспроизводимого H200-прогона.
-- **[EXPERIMENT REQUIRED]** Любая runtime-конфигурация проходит один frozen LÆTEX-Bench workload, одинаковые tool budgets и cost accounting.
-- **[RISK]** Улучшение tokens/s, TTFT или raw inference cost не считается выигрышем, если падает Verified Enterprise Task Completion Rate либо растёт time/cost per verified task.
+- **[VERIFIED FACT]** E-01 has no inherited checkpoint or verified benchmark result.
+- **[ENGINEERING HYPOTHESIS]** `4–6T` accepted pretraining tokens is a planning range conditional on proxy scaling and economics.
+- **[EXPERIMENT REQUIRED]** Architecture scale, active parameters, context envelope, training wall clock and serving latency remain unverified until staged proxy evidence.
+- **[RISK]** Tokens/s, MFU or benchmark score alone cannot establish cost per useful capability or verified enterprise task.
 
-## Serving bakeoff
+## Training economics
 
-- **[EXPERIMENT REQUIRED]** SGLang и vLLM сравниваются на H200 по warm/cold TTFT, decode throughput, p50/p95 end-to-end latency, long-context stability, tool-call validity, cache isolation, VETCR и cost per verified task.
-- **[VERIFIED FACT]** Выбор serving engine не фиксируется по vendor claim или microbenchmark; promotion требует одинаковые checkpoint, precision, prompts, concurrency и verifier workload.
-- **[VERIFIED FACT]** BF16 является master lineage и единственным parent для staged training/merge.
-- **[EXPERIMENT REQUIRED]** Final FP8 inference candidate принимается только после parity с BF16 master по VETCR, coding non-inferiority `<=2 pp`, identity `0/10 000`, tool/policy gates и измеримого выигрыша throughput/cost.
-- **[VERIFIED FACT]** FP8/INT4 candidate никогда не используется как parent следующей training stage.
-- **[VERIFIED FACT]** MXFP4 отклонён для E-01 на H200: он не является базовым H200 execution target и добавляет отдельный kernel/quality risk без принятой необходимости.
+- **[VERIFIED FACT]** Target training approval follows 1B → 7B → mandatory 30B proxies.
+- **[EXPERIMENT REQUIRED]** Every stage reports useful tokens/s, model FLOPs utilization, data wait, collective time, router dispatch, pipeline bubbles, checkpoint overhead, failures/restarts and cost.
+- **[VERIFIED FACT]** Target capacity options are assessed at `512` and `1024` NVIDIA H200; neither allocation is assumed available.
+- **[RISK]** Low MFU, weak scaling efficiency or slow checkpoint recovery can make technically valid architecture economically invalid.
+- **[EXPERIMENT REQUIRED]** Target approval requires uncertainty-bounded cost for 4T, 5T and 6T scenarios and explicit stop-loss checkpoints.
 
-## Runtime optimizations
+## Architecture and context trade-offs
 
-- **[ENGINEERING HYPOTHESIS]** Prefix cache и repository-state cache уменьшают повторную prefill-работу.
-- **[VERIFIED FACT]** Cache keys включают tenant, repository snapshot, policy digest, permissions, template/runtime revision и sensitivity class; cross-tenant cache reuse запрещён.
-- **[RISK]** Shared cache без tenant namespace является каналом утечки и блокирует release.
-- **[EXPERIMENT REQUIRED]** Continuous batching принимается только после проверки fairness, tail latency, deadline isolation и отсутствия cross-request state mixing.
-- **[EXPERIMENT REQUIRED]** Speculative decoding включается только после acceptance experiment с малой draft-моделью LÆTEX: exact output contract, VETCR/non-inferiority, tool validity и реальный end-to-end speedup.
-- **[ENGINEERING HYPOTHESIS]** Structured retrieval минимизирует prompt stuffing: модель получает task-relevant slices, version IDs, provenance и policy decisions, а полный CodeWorld остаётся в authoritative stores.
-- **[ENGINEERING HYPOTHESIS]** Независимые build/test/security/policy verifiers исполняются параллельно, если их side effects отсутствуют и dependency graph это разрешает.
-- **[RISK]** Verification parallelism запрещён для зависимых или изменяющих состояние checks; ложный параллелизм создаёт stale-state verdict.
+- **[ENGINEERING HYPOTHESIS]** MoE lowers active compute relative to total capacity, but EP communication and router imbalance may erase savings.
+- **[ENGINEERING HYPOTHESIS]** Hybrid local/global attention can reduce long-context FLOPs, but only if kernels sustain H200 efficiency without distant-dependency regression.
+- **[EXPERIMENT REQUIRED]** Full-attention controls compare quality, HBM, throughput and MFU at each context stage.
+- **[RISK]** Advertising 256K from config without native context-stage evidence is prohibited.
 
-## Экономика
+## Pretrain quality
 
-- **[VERIFIED FACT]** Cost per verified task включает H200 inference, sandbox/tools, storage/network, retries, verification и измеренный human-review labor; failed tasks остаются в знаменателе workload cost.
-- **[EXPERIMENT REQUIRED]** Candidate сравнивается с baseline на одном task mix, price timestamp, timeout/retry policy и labor rate card.
-- **[RISK]** Снижение cost/token не доказывает снижение cost per verified task.
+- **[EXPERIMENT REQUIRED]** Quality is a vector: held-out loss, code execution, math, language/multilingual, knowledge calibration, context, memorization and MoE routing health.
+- **[VERIFIED FACT]** A single aggregate benchmark cannot promote tokenizer, mix, architecture or checkpoint.
+- **[RISK]** Improving public evals while held-out loss or contamination worsens is not a gain.
+
+## Posttrain action efficiency
+
+- **[VERIFIED FACT]** Posttrain evaluation remains split into four LÆTEX-Bench tracks and uses VETCR as action KPI.
+- **[ENGINEERING HYPOTHESIS]** Structured state, prefix/repository caching, constrained tools, continuous batching and parallel read-only verification can reduce time-to-verified-completion.
+- **[VERIFIED FACT]** Cache keys are tenant, repository-state, policy, permission, tokenizer/template and runtime scoped; cross-tenant reuse is forbidden.
+- **[EXPERIMENT REQUIRED]** Serving engine and BF16/FP8 bakeoffs use identical checkpoints, workload, tool budgets and verification.
+- **[RISK]** Lower cost/token can increase cost per verified task through retries, invalid actions or weaker verification.
 
 ## Latency targets
 
-| Workflow | Target p50 | Target p95 | Статус |
-|---|---:|---:|---|
-| Warm interactive TTFT | `<=0.7 s` | `<=1.5 s` | **[ENGINEERING HYPOTHESIS]** Target, не результат |
-| Architecture plan | `20–45 s` | `<=90 s` | **[ENGINEERING HYPOTHESIS]** Target, не результат |
-| Small verified patch | `2–5 min` | `<=10 min` | **[ENGINEERING HYPOTHESIS]** Target, не результат |
-| Verified PR-level task | `15–45 min` | `<=90 min` | **[ENGINEERING HYPOTHESIS]** Target, не результат; human wait исключён |
+- **[ENGINEERING HYPOTHESIS]** Warm interactive TTFT, architecture-plan, small-patch and PR-level targets are frozen only after target architecture and serving topology exist.
+- **[EXPERIMENT REQUIRED]** Reports separate queue, prefill, decode, tool, sandbox, verifier, retry and human-approval time; p50/p95 and cold/warm/cache strata are mandatory.
+- **[RISK]** Carrying latency numbers from an unrelated 480B checkpoint into scratch E-01 would be false precision.
 
-- **[EXPERIMENT REQUIRED]** Отчёт отдельно публикует queue, prefill, decode, tool, sandbox, verifier и retry time, а также cold/warm и cache-hit/miss strata.
-- **[RISK]** Human approval wait исключается только из model-system latency и публикуется отдельно; скрывать его из полного business lead time запрещено.
+## FP8
+
+- **[VERIFIED FACT]** BF16 remains canonical master; FP8 is a serving derivative.
+- **[EXPERIMENT REQUIRED]** FP8 promotion requires pretrain capability, four-track VETCR, native identity, governance, numerical stability and end-to-end cost/latency parity evidence.
+- **[RISK]** Kernel-level speedup without full workload parity is insufficient.

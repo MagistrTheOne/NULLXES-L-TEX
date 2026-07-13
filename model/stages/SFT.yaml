@@ -1,0 +1,13 @@
+apiVersion: nullxes.model-stage/v2
+kind: PostTrainingStage
+metadata: {id: SFT, status: planned, execution_state: not_run}
+spec:
+  lane: target
+  parent: artifact://latex-e01/LC256K/BF16/PENDING
+  objective: "Teach LÆTEX instruction, coding, tool, evidence and governance contracts."
+  method: full_or_selective_parameter_sft_pending_proxy_ablation
+  adapter_parentage: forbidden
+  data: dataset://latex-e01/action-sft/PENDING
+  runtime: {accelerator: NVIDIA_H200, minimum_gpus: 512, recommended_gpus: 1024, local_training: forbidden}
+  gates: [tool_schema_pass, verified_task_gain, pretrain_capability_noninferiority, unsafe_action_zero, lineage_complete]
+  output: artifact://latex-e01/SFT/BF16/PENDING

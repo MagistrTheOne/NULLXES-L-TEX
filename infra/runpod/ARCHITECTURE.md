@@ -1,87 +1,73 @@
-# RunPod-only compute architecture для LÆTEX E-01
+# RunPod architecture: independent from-scratch E-01
 
-## 1. Foundation decision
+## Compute boundary
 
-- **[VERIFIED FACT]** Единственный foundation и production candidate: `Qwen/Qwen3-Coder-480B-A35B-Instruct`, 480B total / 35B activated, 62 layers, 160 experts, Top-8, native 262,144 context, BF16 upstream weights.
-- **[VERIFIED FACT]** Разделение 80B student / 480B teacher удалено. Тот же 480B checkpoint нельзя называть teacher: он является родителем LÆTEX.
-- **[RISK]** Отдельный critic допускается только отдельным архитектурным и бюджетным approval, с собственным checkpoint ID и lineage. По умолчанию critic отсутствует.
-- **[ENGINEERING HYPOTHESIS]** E-01 обучает LoRA/adapters и последовательно сливает их в BF16 masters; full-parameter 480B tuning не входит в E-01.
-- **[RISK]** Full-parameter 480B training потребует не менее 128 H200 и допускается только после optimizer/checkpoint memory proof; это нижняя гипотеза, не утверждение feasibility.
+- **[VERIFIED FACT]** Все model training, model inference, tokenizer training и
+  trajectory generation выполняются только на homogeneous NVIDIA H200 HGX.
+  Локальная машина — control plane без weights, train shards и model workloads.
+- **[ENGINEERING HYPOTHESIS]** Target campaign: 512 H200 minimum, 1024 H200
+  recommended. Эти числа — planning envelopes, не подтверждение capacity,
+  throughput, affordability или RunPod availability.
+- **[RISK]** До reservation конкретный allocation обязан получить письменную
+  provider attestation NVLink/NVSwitch intra-node и InfiniBand inter-node, затем
+  пройти NCCL collective/all-to-all, GPU health, storage и checkpoint-resume
+  acceptance. Marketing bandwidth не является attestation.
 
-## 2. Изолированные compute-контуры
+## Canonical lineage
 
-### H200 training
+`T0-TOKENIZER → D0-CORPUS → I0-INIT → P0-PRETRAIN-8K → LC32K → LC128K →
+LC256K → SFT → PREF → GRPO → R1-BF16 → FP8`
 
-- **[VERIFIED FACT]** Только NVIDIA H200 SXM 141 GB и homogeneous HGX nodes по 8 GPU; NVLink/NVSwitch внутри узла обязателен.
-- **[EXPERIMENT REQUIRED]** Межузловой InfiniBand обязателен как allocation gate, но допускается только после письменной provider attestation конкретной fabric/topology и NCCL acceptance; неаттестованный allocation является NO-GO.
-- **[ENGINEERING HYPOTHESIS]** Baseline и 8–16K LoRA: minimum 16 / recommended 32 H200. Для 32–64K LoRA: recommended 64. Preference: 32/64. GRPO: 64/128.
-- **[RISK]** Стандартный RunPod Instant Cluster ограничен 16–64 GPU; 128 H200 для GRPO требует заранее подтверждённой capacity через RunPod sales.
-- **[ENGINEERING HYPOTHESIS]** Pinned OCI image + Megatron-Core/Megatron-LM + Transformer Engine; DeepSpeed только после phase parity.
+Proxy lane `PX1-1B → PX2-7B → PX3-30B → ARCH-FREEZE` передаёт target lane только
+спецификации и evidence. Proxy weights/optimizer/checkpoints запрещены как
+target parents.
 
-### H200 inference/evaluation
+## Parallelism arithmetic
 
-- **[ENGINEERING HYPOTHESIS]** BF16 480B weights занимают около 960 GB до runtime overhead. Поэтому BF16 minimum 16 / recommended 32 H200; 8 H200 физически слишком тесны для release qualification.
-- **[ENGINEERING HYPOTHESIS]** BF16→FP8 conversion/export и parity: minimum 16 / recommended 32 H200. Финальный FP8 serving допускает minimum 8 H200 только после conversion, memory-fit и full parity; 8 H200 не используются для conversion.
-- **[VERIFIED FACT]** Training, rollout serving и release evaluation используют раздельные allocations.
+Для профилей используется явная независимая размерность:
 
-### Local control plane
+`world_size = TP × PP × EP × CP × DP`
 
-- **[VERIFIED FACT]** Локально разрешены Git, профили, job submission, агрегированные метрики и лёгкие unit tests без весов.
-- **[VERIFIED FACT]** Локальные inference, training, LoRA, merge, CPT/DAPT, RL и generation запрещены.
+**[ENGINEERING HYPOTHESIS]** Preferred target point `TP8/PP8/EP16` корректен
+только при world size не меньше `8×8×16=1024` для `CP1/DP1`. При 144 routed
+experts `144/16=9` experts на EP rank.
 
-## 3. Staged BF16 lineage
+**[RISK]** 512 H200 не реализуют одновременно независимые `TP8/PP8/EP16`.
+Canonical 512 fallback для 8K использует `TP8/PP8/EP8/CP1/DP1`; long-context
+profiles уменьшают PP/EP, чтобы добавить CP и сохранить world-size arithmetic.
+`ARCH-FREEZE` обязан подтвердить layer divisibility, bubble cost, memory fit и
+что fallback не меняет quality. Нельзя скрыто считать EP частью DP.
 
-| ID | Родитель | Изменение | Результат |
-|---|---|---|---|
-| `S0` | upstream | Immutable BF16 foundation | Source master |
-| `A1` | `S0` | Identity/tool LoRA training; no merge | Retained adapter |
-| `M1` | `S0 + A1` | Separate verified BF16 merge | Stage 1 master |
-| `A2` | `M1` | Enterprise Action SFT LoRA training; no merge | Retained adapter |
-| `M2` | `M1 + A2` | Separate verified BF16 merge | Stage 2 master |
-| `A3` | `M2` | Preference LoRA training; no merge | Retained adapter |
-| `M3` | `M2 + A3` | Separate verified BF16 merge | Stage 3 master |
-| `A4` | `M3` | GRPO LoRA training; no merge | Retained adapter |
-| `M4` | `M3 + A4` | Separate verified BF16 merge/evaluation | Release BF16 master |
-| `FP8` | `M4` | Separate conversion/export and parity | Serving derivative only |
+## Phase mappings
 
-- **[VERIFIED FACT]** Каждый `A1..A4`, его pre-merge parent, merge manifest и post-merge eval сохраняются.
-- **[ENGINEERING HYPOTHESIS]** Merge выполняется BF16-совместимым детерминированным job, затем load test и полный protected regression gate.
-- **[VERIFIED FACT]** Каждая стадия начинает новый optimizer/scheduler; optimizer state не переносится через merge boundary.
-- **[VERIFIED FACT]** FP8 — только производный inference export от `M4`; FP8 никогда не является training или merge parent.
-- **[RISK]** Base MoE router и 160 routed experts frozen в Phases 1–4. Их разморозка требует отдельного ablation и не является E-01 default.
+- 8K: 512=`8×8×8×1×1`; 1024=`8×8×16×1×1`.
+- 32K: 512=`8×8×8×1×1`; 1024=`8×8×8×2×1`.
+- 128K: 512=`8×4×4×4×1`; 1024=`8×4×8×4×1`.
+- 256K: 512=`8×2×4×8×1`; 1024=`8×2×8×8×1`.
+- Post-train/release defaults return to 8K/32K layouts; exact rollout/inference
+  rank partitions are recorded separately and sum to world size.
 
-## 4. Storage и checkpoints
+## Storage and checkpoint contract
 
-| Уровень | Назначение | Политика |
-|---|---|---|
-| `/workspace` Network Volume | active shards, adapters, rollout queues, staging checkpoints | Working set, не source of truth |
-| Node-local scratch | cache/compilation/transient artifacts | Ephemeral, checksum-bound |
-| External encrypted object store | `S0`, `A1..A4`, `M1..M4`, FP8 derivative, optimizer states, datasets, evidence | Versioned immutable registry |
+- External encrypted, versioned object storage is the durable source of truth
+  for datasets, tokenizer, architecture freeze, BF16 checkpoints, optimizer/RNG
+  state, FP8 export and evidence.
+- RunPod Network Volume is a replaceable working set; node-local NVMe is
+  ephemeral cache. Every download/upload is hash-verified.
+- Pretrain checkpoints include model, distributed optimizer, scheduler, RNG,
+  dataloader cursor, consumed-token counters and topology transform metadata.
+  Cadence is time- and token-based, finalized by measured write/resume SLO.
+- A run cannot promote without cold restore on a fresh allocation.
 
-- **[ENGINEERING HYPOTHESIS]** Один run — один write namespace; promotion выполняет единственный registry writer после checksum и resume/load test.
-- **[RISK]** Merge без adapter retention, parent hash, tokenizer/template hash или post-merge parity считается недействительным.
+## Profiles and economics
 
-## 5. Network acceptance
+Canonical profiles are exactly tokenizer, proxy1/7/30, target-init,
+pretrain8k/32k, long-context128k/256k, sft, preference, grpo, bf16-release and
+fp8-export. Historical derivative contracts are outside `profiles/`.
 
-- **[RISK]** Публичное «до 3200 Gbps» и наличие `ens*` не доказывают InfiniBand конкретного allocation.
-- **[EXPERIMENT REQUIRED]** Перед каждым multi-node run нужны письменная provider attestation InfiniBand, topology inventory, NCCL test, no-`eth0` fallback, 141 GB HBM/rank и zero XID/ECC; до этого наличие подходящего allocation не считается верифицированным.
-- **[EXPERIMENT REQUIRED]** Для training дополнительно: distributed loss/gradient parity; для GRPO: rollout/update sync и sandbox containment; для release: identical bundle hashes.
-
-## 6. Profile contract
-
-- **[VERIFIED FACT]** Все `infra/runpod/profiles/*.yaml` используют `laetex.runpod.profile/v2` и одинаковые top-level keys.
-- **[VERIFIED FACT]** `world_size = TP × PP × CP × DP`. `EP` не умножается второй раз; его group semantics проходят отдельную Megatron validation.
-- **[ENGINEERING HYPOTHESIS]** EP=1 в E-01 Phases 0–4, потому что upstream router/experts frozen. Top-2 domain-adapter router Phase 5 — иной механизм, не base-MoE EP.
-- **[VERIFIED FACT]** Каждый профиль задаёт network attestation, working/durable storage, checkpoint input/output/cadence/retention, wall-clock как hypothesis, exact metric и economic gate.
-
-## 7. Security и tenancy
-
-- **[VERIFIED FACT]** Только RunPod Secure Cloud; Community Cloud запрещён.
-- **[ENGINEERING HYPOTHESIS]** Раздельные projects, volumes, object prefixes, KMS keys и short-lived identities для `dev/eval/train/release`.
-- **[RISK]** Tenant data не попадают в общий corpus без explicit opt-in lineage; logs, crash dumps и telemetry проверяются на source/secrets leakage.
-
-## 8. Source snapshot
-
-- **[VERIFIED FACT]** Model card и `config.json` проверены 2026-07-13: 480B/35B, 62 layers, 96Q/8KV, 160 experts, 8 active, BF16, 262,144 context; config указывает `shared_expert_intermediate_size: 0`.
-- **[RISK]** License/notices и deployment compatibility должны фиксироваться отдельным release artifact; параметры и RunPod limits перепроверяются перед reservation.
+**[ENGINEERING HYPOTHESIS]** Every wall-clock, MFU, throughput, storage-volume
+and cost claim is provisional until measured. Full-scale H200 execution is
+economically allowed only after its predecessor proves data readiness,
+checkpoint recovery, network efficiency, frozen stop conditions and expected
+quality gain per H200-hour. This repository provisions and trains nothing.
 

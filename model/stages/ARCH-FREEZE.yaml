@@ -1,0 +1,32 @@
+apiVersion: nullxes.model-stage/v2
+kind: ArchitectureDecisionStage
+metadata: {id: ARCH-FREEZE, status: planned, execution_state: not_run}
+spec:
+  lane: proxy
+  dependencies: [PX1-1B, PX2-7B, PX3-30B]
+  input_weights: forbidden
+  purpose: "Freeze a target specification from proxy evidence before target initialization."
+  required_decisions:
+    - tokenizer_and_vocab_hash
+    - layer_hidden_attention_and_rope_spec
+    - routed_and_shared_expert_spec
+    - total_and_active_parameter_arithmetic
+    - initialization_and_mup_transfer
+    - optimizer_schedule_and_token_budget
+    - 8K_to_32K_to_128K_to_256K_curriculum
+    - TP_PP_EP_CP_DP_layouts
+  topology_hypothesis:
+    target_routed_experts: 144
+    preferred_EP: 16
+    experts_per_EP_rank: 9
+    preferred_TP: 8
+    preferred_PP: 8
+    exact_TP8_PP8_EP16_CP1_DP1_world_size: 1024
+    warning: "512 cannot realize independent TP8*PP8*EP16; any fallback must be explicit."
+  gates:
+    - proxy_scaling_fit_reviewed
+    - parameter_math_recomputed
+    - 512_and_1024_memory_models_reviewed
+    - provider_fabric_acceptance_plan_signed
+    - corpus_readiness_signed
+  output: manifest://latex-e01/ARCH-FREEZE/PENDING

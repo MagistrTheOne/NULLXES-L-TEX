@@ -2,7 +2,7 @@
 
 ## Scope и источники
 
-ADR, API/OpenAPI/AsyncAPI contracts, IaC, Kubernetes manifests, CI/CD definitions, schemas, migrations, runbooks, SLO, architecture/security reviews и postmortems. Источники: permissive public projects, standards с допустимыми terms, NULLXES-authored fixtures и synthetic multi-system environments.
+**[VERIFIED FACT]** Contract scope: ADR, API/OpenAPI/AsyncAPI contracts, IaC, Kubernetes manifests, CI/CD definitions, schemas, migrations, runbooks, SLO, architecture/security reviews и postmortems. Candidate sources: permissive public projects, standards с допустимыми terms, NULLXES-authored fixtures и synthetic multi-system environments.
 
 - **VERIFIED FACT:** Конфигурация без связанного runtime/build evidence не считается истинным состоянием системы.
 - **VERIFIED FACT:** Клиентские схемы, топологии и runbooks не допускаются в general corpus без отдельного opt-in и rights review.

@@ -1,0 +1,28 @@
+apiVersion: nullxes.archive/v1
+kind: HistoricalRunPodProfiles
+metadata: {id: qwen-derivative-e01, status: archived}
+spec:
+  canonical: false
+  executable: false
+  superseded_by: infra/runpod/ARCHITECTURE.md
+  reason: "Derivative S0/LoRA/merge RunPod contracts removed from independent E-01."
+  source_snapshot:
+    captured_from: infra/runpod/profiles
+    files:
+      - baseline.yaml
+      - identity-lora.yaml
+      - cpt.yaml
+      - merge-m1.yaml
+      - merge-m2.yaml
+      - merge-m3.yaml
+      - merge-m4.yaml
+      - release-eval.yaml
+      - router-world-model.yaml
+      - sft.yaml
+      - preference.yaml
+      - grpo.yaml
+      - fp8-export.yaml
+  policy:
+    canonical_profile_resolution: forbidden
+    valid_parent_for_independent_target: false
+    restore_requires_new_architecture_decision: true

@@ -1,0 +1,19 @@
+schema: laetex.runpod.profile/v3
+name: long-context128k
+enabled: true
+stage: LC128K
+classification: EXPERIMENT_REQUIRED
+purpose: "Staged 131072-token continuation with short-context replay."
+platform: {provider: RunPod, cloud: Secure Cloud, accelerator: NVIDIA H200, local_model_workloads: forbidden}
+compute: {minimum: {world_size: 512, nodes: 64}, recommended: {world_size: 1024, nodes: 128}, precision: BF16}
+parallelism:
+  minimum: {TP: 8, PP: 4, EP: 4, CP: 4, DP: 1}
+  recommended: {TP: 8, PP: 4, EP: 8, CP: 4, DP: 1}
+  rule: "world_size=TP*PP*EP*CP*DP"
+  note: "PP4 requires ARCH-FREEZE layer divisibility and bubble proof."
+network: {required: "provider-attested NVLink/NVSwitch and InfiniBand", acceptance: "all-to-all, CP collectives and sequence-loss parity"}
+storage: {working: "RunPod Network Volume plus ephemeral NVMe cache", durable_source_of_truth: "external encrypted versioned object store"}
+checkpoint: {input: "accepted LC32K full state", output: "LC128K BF16 full state", cadence: "measured time/token interval", cold_restore_required: true}
+wall_clock: {classification: ENGINEERING_HYPOTHESIS, estimate: "TBD by measured 128K tokens/s"}
+gate: "128K retrieval/state tests, short-context noninferiority, memory/MFU and restore pass"
+economic_gate: "Stop if structured retrieval beats 128K continuation on verified tasks per dollar."

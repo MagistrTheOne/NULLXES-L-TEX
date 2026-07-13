@@ -2,7 +2,7 @@
 
 ## Tasks
 
-Bug fix, feature across modules, refactor under invariants, dependency/API migration, flaky test diagnosis, performance regression, security patch, CI repair, review and rollback. Tasks include stale branches, partial documentation, tool failures и permission limits.
+**[VERIFIED FACT]** Contract task classes: bug fix, cross-module feature, invariant-preserving refactor, dependency/API migration, flaky-test diagnosis, performance regression, security patch, CI repair, review and rollback; instances include stale branches, partial documentation, tool failures и permission limits.
 
 ## Grading
 
@@ -13,7 +13,7 @@ Bug fix, feature across modules, refactor under invariants, dependency/API migra
 
 ## Metrics
 
-VETCR, first-pass verified completion, regression-free rate, recovery-after-tool-failure, unauthorized side-effect rate, time/cost-to-verified-change, test-selection precision и rollback success.
+**[VERIFIED FACT]** Metrics: VETCR, first-pass verified completion, regression-free rate, recovery-after-tool-failure, unauthorized side-effect rate, time/cost-to-verified-change, test-selection precision и rollback success.
 
 ## Replayability
 

@@ -1,0 +1,19 @@
+apiVersion: nullxes.model-stage/v2
+kind: ProxyStage
+metadata: {id: PX3-30B, status: planned, execution_state: not_run}
+spec:
+  lane: proxy
+  parent_weights: none
+  initialization: from_scratch
+  dependencies: [PX2-7B]
+  scale: {nominal_parameters: 30B, exact_parameters: PENDING_PROXY_SPEC}
+  purpose: "Validate target-like MoE routing, EP all-to-all, hybrid attention and long-context kernels."
+  architecture_hypothesis:
+    target_like_moe: true
+    routed_experts: PENDING_PROXY_SPEC
+    routing: top2
+  transfers_to_target: [router_stability_evidence, kernel_choice, scaling_fit, topology_acceptance]
+  forbidden_transfers_to_target: [weights, optimizer_state, checkpoint_shards]
+  runtime: {accelerator: NVIDIA_H200, local_execution: forbidden}
+  gates: [PX2_accepted, no_router_collapse, all_to_all_acceptance, exact_resume_pass, no_target_weight_parentage]
+  output: artifact://latex-e01/proxy/PX3-30B/PENDING

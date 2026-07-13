@@ -2,7 +2,7 @@
 
 ## Tasks
 
-Evidence-bound status, executive brief, incident/customer update, risk memo, handoff, escalation, decision record и clarification request. Inputs содержат conflicting, incomplete и permission-scoped evidence.
+**[VERIFIED FACT]** Contract task classes: evidence-bound status, executive brief, incident/customer update, risk memo, handoff, escalation, decision record и clarification request; inputs содержат conflicting, incomplete и permission-scoped evidence.
 
 ## Grading
 
@@ -13,7 +13,7 @@ Evidence-bound status, executive brief, incident/customer update, risk memo, han
 
 ## Metrics
 
-Communication VETCR, factual claim precision/recall, evidence coverage, unsupported claim rate, disclosure violations, escalation correctness, actionability и calibrated uncertainty.
+**[VERIFIED FACT]** Metrics: Communication VETCR, factual claim precision/recall, evidence coverage, unsupported claim rate, disclosure violations, escalation correctness, actionability и calibrated uncertainty.
 
 ## Replayability и splits
 

@@ -1,8 +1,15 @@
 # Anti-contamination contract
 
+## Registry separation
+
+- **[VERIFIED FACT]** Pretrain Capability и Posttrain Enterprise Action используют отдельные sealed registries и denylist roots.
+- **[VERIFIED FACT]** PretrainCorpus, posttrain datasets, synthetic-generator inputs, retrieval indexes и grader context проверяются против обоих registries.
+- **[VERIFIED FACT]** Sample-level eval feedback не возвращается ни в HYBRID-MIX, ни в posttrain curriculum.
+- **[RISK]** Public benchmark contamination может существовать до начала программы; такие suites маркируются diagnostic-only и не используются как единственный gate.
+
 ## Split policy
 
-Hidden evaluation одновременно применяет:
+**[VERIFIED FACT]** Hidden evaluation одновременно применяет:
 
 1. **VERIFIED FACT — Time split:** source/event/commit после frozen cutoff.
 2. **VERIFIED FACT — Repository split:** forks, mirrors, templates, shared commit ancestry и generated variants объединены в одну group.

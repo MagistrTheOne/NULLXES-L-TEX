@@ -1,0 +1,13 @@
+apiVersion: nullxes.model-stage/v2
+kind: PostTrainingStage
+metadata: {id: PREF, status: planned, execution_state: not_run}
+spec:
+  lane: target
+  parent: artifact://latex-e01/SFT/BF16/PENDING
+  objective: "Prefer verified, evidence-backed and policy-compliant outcomes."
+  method: DPO_or_IPO_selected_by_controlled_ablation
+  reference_cache_must_match_parent: true
+  data: dataset://latex-e01/preferences/PENDING
+  runtime: {accelerator: NVIDIA_H200, minimum_gpus: 512, recommended_gpus: 1024, local_training: forbidden}
+  gates: [pair_accuracy_gate, VETCR_gain, safety_noninferiority, capability_noninferiority, KL_within_frozen_band]
+  output: artifact://latex-e01/PREF/BF16/PENDING

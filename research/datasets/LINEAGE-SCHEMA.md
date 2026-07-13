@@ -6,9 +6,10 @@
 object_id: "sha256:..."
 schema_version: "1.0"
 tenant_id: null
-purpose: "quarantine|train|eval|redteam"
+purpose: "quarantine|pretrain|posttrain|eval|redteam"
 training_allowed: false
 consent_record_id: null
+tenant_scope: "restricted"
 source:
   uri: ""
   acquired_at: ""
@@ -16,6 +17,9 @@ source:
   owner: ""
 license:
   spdx_id: null
+  rights_status: "unknown|allowed|restricted|denied"
+  permitted_purposes: []
+  jurisdiction: null
   evidence_uri: null
   reviewed_by: null
 sensitivity:
@@ -29,6 +33,15 @@ content:
   minhash_signature: ""
   semantic_fingerprint: ""
   ast_fingerprint: null
+  provenance_group_id: ""
+tokenization:
+  tokenizer_candidate_id: null
+  accepted_tokens: null
+mixture:
+  hybrid_mix_version: null
+  domain: null
+  language: null
+  quality_stratum: null
 transformations: []
 contamination:
   eval_registry_version: ""
@@ -52,11 +65,13 @@ retention:
 ## Инварианты
 
 - **VERIFIED FACT:** `training_allowed` отсутствует или не равно `true` — объект не читается train job.
-- **VERIFIED FACT:** `training_allowed=true` допустимо только при непустых rights/consent evidence, clear privacy/secrets, clear contamination и approved quality status.
+- **VERIFIED FACT:** `training_allowed=true` допустимо только при `rights_status=allowed`, purpose в `permitted_purposes`, clear privacy/secrets, clear contamination и approved quality status; consent требуется там, где он является legal basis.
 - **VERIFIED FACT:** `tenant_id != null` запрещает включение в general snapshot, кроме отдельного explicit opt-in workflow с новым derived object ID; raw object остаётся tenant-bound.
 - **VERIFIED FACT:** Любая transformation append-only и содержит tool/version/config/operator/time/input/output hashes.
 - **VERIFIED FACT:** Split assignment наследуется по connected provenance group; отдельные строки одного repository/event нельзя разнести между train и hidden eval.
 - **RISK:** Ошибка metadata опаснее ошибки отдельного текста, поскольку масштабируется на snapshot; manifests подписываются и валидируются policy-as-code.
+- **VERIFIED FACT:** Pretrain snapshot дополнительно фиксирует tokenizer candidate, accepted token counts, HYBRID-MIX version и provenance-group caps.
+- **VERIFIED FACT:** Posttrain и hidden-eval purpose нельзя повысить в pretrain без нового rights/contamination decision и нового object ID.
 
 ## Snapshot manifest
 

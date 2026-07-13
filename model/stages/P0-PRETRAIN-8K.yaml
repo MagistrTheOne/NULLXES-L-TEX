@@ -1,0 +1,14 @@
+apiVersion: nullxes.model-stage/v2
+kind: PretrainingStage
+metadata: {id: P0-PRETRAIN-8K, status: planned, execution_state: not_run}
+spec:
+  lane: target
+  parent: artifact://latex-e01/I0-INIT/BF16/PENDING
+  corpus: artifact://latex-e01/D0-CORPUS/PENDING
+  context_tokens: 8192
+  objective: next_token_prediction
+  trainable_scope: all_target_parameters
+  precision: BF16_master_with_TE_FP8_compute_only_if_proxy_validated
+  runtime: {accelerator: NVIDIA_H200, minimum_gpus: 512, recommended_gpus: 1024, local_training: forbidden}
+  gates: [loss_and_gradient_stable, router_balance_pass, heldout_curve_on_plan, checkpoint_resume_exact, data_accounting_100_percent]
+  output: artifact://latex-e01/P0-PRETRAIN-8K/BF16/PENDING

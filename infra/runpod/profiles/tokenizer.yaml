@@ -1,0 +1,20 @@
+schema: laetex.runpod.profile/v3
+name: tokenizer
+enabled: true
+stage: T0-TOKENIZER
+classification: EXPERIMENT_REQUIRED
+purpose: "Train, validate and hash the independent tokenizer; no model weights."
+platform: {provider: RunPod, cloud: Secure Cloud, accelerator: NVIDIA H200, local_model_workloads: forbidden}
+compute:
+  minimum: {world_size: 8, nodes: 1}
+  recommended: {world_size: 16, nodes: 2}
+parallelism:
+  minimum: {TP: 1, PP: 1, EP: 1, CP: 1, DP: 8}
+  recommended: {TP: 1, PP: 1, EP: 1, CP: 1, DP: 16}
+  rule: "world_size=TP*PP*EP*CP*DP"
+network: {required: "NVLink/NVSwitch; provider-attested InfiniBand for multi-node", acceptance: "NCCL and storage preflight"}
+storage: {working: "RunPod Network Volume", durable_source_of_truth: "external encrypted versioned object store"}
+checkpoint: {input: "licensed tokenizer sample manifest", output: "tokenizer files, hashes and validation", cadence: "atomic candidates"}
+wall_clock: {classification: ENGINEERING_HYPOTHESIS, estimate: "TBD after corpus throughput pilot"}
+gate: "roundtrip, byte fallback, frozen compression/UNK thresholds and contamination checks pass"
+economic_gate: "Run only after source/license/PII manifest is complete."

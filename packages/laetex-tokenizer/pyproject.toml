@@ -1,0 +1,31 @@
+[build-system]
+requires = ["hatchling>=1.27"]
+build-backend = "hatchling.build"
+
+[project]
+name = "laetex-tokenizer"
+version = "0.1.0"
+description = "Reproducible tokenizer research pipeline for an independent LÆTEX model"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+  "jsonschema>=4.23",
+  "PyYAML>=6.0",
+  "tokenizers>=0.21",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8.3", "ruff>=0.9"]
+
+[project.scripts]
+laetex-tokenizer = "laetex_tokenizer.pipeline:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/laetex_tokenizer"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

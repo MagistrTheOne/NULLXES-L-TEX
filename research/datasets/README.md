@@ -1,44 +1,35 @@
-# LÆTEX Corpus: контракт программы данных
+# LÆTEX Corpus: independent E-01 data program
 
-## Назначение
+## Разделение corpus planes
 
-- **VERIFIED FACT:** LÆTEX Corpus разделён на CodeWorld, SystemWorld, Enterprise Voice, ActionWorld и GovernanceSet; объединение не отменяет отдельные лицензии, политики доступа и lineage.
-- **VERIFIED FACT:** Сырые данные клиента запрещено включать в общий checkpoint, future-critic corpus, replay buffer или shared eval.
-- **VERIFIED FACT:** Для любого объекта по умолчанию `training_allowed=false`; отсутствие поля трактуется как запрет.
-- **ENGINEERING HYPOTHESIS:** Первая полезная версия корпуса требует 65–75% проверенных синтетических объектов и 25–35% человеческих/open-source объектов; доля пересматривается после ablation.
-- **EXPERIMENT REQUIRED:** Доказать, что синтетика повышает VETCR на hidden-наборах, а не только имитирует стиль generator/critic.
+- **[VERIFIED FACT]** [PretrainCorpus](PRETRAIN-CORPUS.md) задаёт broad corpus независимого pretraining с нуля.
+- **[VERIFIED FACT]** [HYBRID-MIX](HYBRID-MIX.md) задаёт sampling и curriculum policy поверх approved snapshots.
+- **[VERIFIED FACT]** [Context curriculum](CONTEXT-CURRICULUM.md) задаёт evidence-gated увеличение sequence length.
+- **[VERIFIED FACT]** CodeWorld, SystemWorld, Enterprise Voice, ActionWorld и GovernanceSet являются отдельными post-training/action наборами; их labels и hidden eval не смешиваются с broad pretrain автоматически.
+- **[VERIFIED FACT]** Для любого объекта default — `training_allowed=false`; отсутствие rights, tenant scope или gate decision означает reject.
 
-## Единый pipeline допуска
+## Planning targets
 
-**VERIFIED FACT:** `ingest → quarantine → classify → license/consent → PII/secret scan → normalize → exact dedup → MinHash dedup → semantic/AST dedup → contamination scan → quality gate → immutable snapshot`
+- **[ENGINEERING HYPOTHESIS]** `4–6T` accepted tokens — planning range для target-scale PretrainCorpus, а не утверждённый бюджет и не выполненный результат.
+- **[EXPERIMENT REQUIRED]** Target run получает approval только после 1B/7B/30B proxy scaling, mixture/context ablations, MFU/throughput evidence и budget review.
+- **[ENGINEERING HYPOTHESIS]** Post-training candidate ranges: `180k–300k` verified examples, `60k–120k` executable trajectories и `20k–60k` failure/recovery trajectories.
+- **[EXPERIMENT REQUIRED]** Все ranges уточняются power analysis, marginal-quality curves и стоимостью human/executable verification.
 
-**VERIFIED FACT:** Обязательные состояния: `quarantined`, `rejected`, `eval_only`, `training_candidate`, `approved_snapshot`. Только объект с `training_allowed=true`, валидным `consent_record_id`, пройденными gates и записью в manifest может попасть в train snapshot.
+## Unified admission controls
 
-## Общие gates
+**[VERIFIED FACT]** `ingest → quarantine → rights → PII/secrets → normalize → dedup → contamination → quality → purpose assignment → immutable snapshot`
 
-1. **VERIFIED FACT:** License gate блокирует неизвестную, несовместимую или непроверяемую лицензию.
-2. **VERIFIED FACT:** Privacy gate блокирует PII, credentials, secrets, private keys и tenant identifiers до доказанной санации.
-3. **VERIFIED FACT:** Dedup gate применяет SHA-256 к canonical form, MinHash/LSH к near-duplicates, embeddings к смысловым дублям; для кода дополнительно AST/token fingerprints.
-4. **VERIFIED FACT:** Contamination gate сравнивает train с hidden eval по exact hash, MinHash, semantic similarity, symbol/AST fingerprints и provenance graph.
-5. **VERIFIED FACT:** Quality gate требует schema validity, разрешённый source, reproducible verifier, evidence и отсутствие несанкционированных side effects.
-6. **RISK:** Semantic dedup может удалить легитимные независимые решения или пропустить перефразированную утечку; thresholds версионируются и калибруются на размеченной выборке.
+1. **[VERIFIED FACT]** Licensing gate блокирует unknown, incompatible или unverifiable rights.
+2. **[VERIFIED FACT]** Privacy/secrets gate блокирует unresolved PII, credentials, keys, private endpoints и tenant identifiers.
+3. **[VERIFIED FACT]** Dedup использует exact, MinHash/LSH и semantic methods; code/config дополнительно AST, symbol, patch и ancestry fingerprints.
+4. **[VERIFIED FACT]** Contamination связывает train/eval через provenance graph и блокирует connected family, а не только совпавшую строку.
+5. **[VERIFIED FACT]** Tenant data default-denied для general pretrain/posttrain; explicit opt-in не обходит rights, privacy, security или contamination review.
+6. **[RISK]** Semantic filters ошибаются в обе стороны; thresholds калибруются на размеченной выборке и хранятся по version.
 
-## Хранение и управление
+## Storage и lineage
 
-- **VERIFIED FACT:** Immutable encrypted object storage хранит raw quarantine, sanitized canonical objects, manifests и verifier artifacts.
-- **VERIFIED FACT:** Metadata/lineage store хранит source, hashes, license, consent, transformations, tenant, split, reviewers и toolchain versions.
-- **VERIFIED FACT:** KMS keys, ACL и retention разделены по tenant и purpose; train workers читают только approved immutable snapshots.
-- **VERIFIED FACT:** Snapshot имеет content-addressed ID; изменение любого объекта создаёт новый snapshot.
-- **VERIFIED FACT:** Удаление по отзыву consent выполняется через tombstone, impact graph и rebuild затронутых snapshots/checkpoints.
-
-## Первичные targets
-
-- **ENGINEERING HYPOTHESIS:** Broad CPT отсутствует в E-01; узкий DAPT отключён по умолчанию.
-- **EXPERIMENT REQUIRED:** Corpus size для опционального narrow DAPT остаётся `TBD_BY_PILOT` и фиксируется только после отдельного S0-based pilot с contamination, alignment, coding-retention, tool-grammar и cost gates.
-- **ENGINEERING HYPOTHESIS:** SFT: 180k–300k verified examples.
-- **ENGINEERING HYPOTHESIS:** Executable trajectories: 60k–120k.
-- **ENGINEERING HYPOTHESIS:** Failure/recovery trajectories: 20k–60k.
-- **ENGINEERING HYPOTHESIS:** Private held-out evaluation: 2,000–3,000 задач.
-- **EXPERIMENT REQUIRED:** Зафиксировать targets только после Phase-0 power analysis, leakage audit и стоимости верификации.
-
-**VERIFIED FACT:** Схема объектов определена в [LINEAGE-SCHEMA.md](LINEAGE-SCHEMA.md), а клиентская изоляция — в [TENANT-ISOLATION.md](TENANT-ISOLATION.md).
+- **[VERIFIED FACT]** Raw quarantine, canonical objects, shards, manifests и verifier artifacts хранятся раздельно в encrypted immutable object storage.
+- **[VERIFIED FACT]** Train workers читают только signed snapshots через purpose-scoped identity; прямой доступ к raw или tenant stores запрещён.
+- **[VERIFIED FACT]** [Lineage schema](LINEAGE-SCHEMA.md) связывает source, rights, consent, transformations, tokenizer, dedup, contamination, split и checkpoint impact.
+- **[VERIFIED FACT]** [Tenant isolation](TENANT-ISOLATION.md) определяет default-deny и explicit opt-in workflow.
+- **[RISK]** Ни corpus volume, ни quality, ни proxy gains пока не измерены; документы задают contracts, а не заявляют эксперименты.

@@ -5,7 +5,7 @@
 
 ## Контекст
 
-- **VERIFIED FACT:** Foundation `Qwen3-Coder-480B-A35B-Instruct` имеет внутренний token-level MoE router: 160 experts, Top-8 и не имеет shared base expert (`shared_expert_intermediate_size: 0`).
+- **ENGINEERING HYPOTHESIS:** Independent E-01 target имеет внутренний token-level MoE router: 144 routed experts + 1 shared expert и Top-6; параметры остаются pending proxy validation по ADR-0007.
 - **RISK:** Изменение internal router смешивает domain specialization с backbone computation и повышает риск catastrophic forgetting/expert collapse.
 - **ENGINEERING HYPOTHESIS:** Enterprise task metadata позволяет выбрать domain specialization до decoding и объяснить route в audit.
 

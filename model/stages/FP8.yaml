@@ -1,0 +1,14 @@
+apiVersion: nullxes.model-stage/v2
+kind: ExportStage
+metadata: {id: FP8, status: planned, execution_state: not_run}
+spec:
+  lane: target
+  parent: artifact://latex-e01/R1-BF16/PENDING
+  objective: "Create an inference-only FP8 derivative and prove parity against R1-BF16."
+  training: disabled
+  training_parent_eligibility: forbidden
+  source_dtype: BF16
+  target_dtype: FP8
+  runtime: {accelerator: NVIDIA_H200, minimum_gpus: 512, recommended_gpus: 1024, local_execution: forbidden}
+  gates: [R1_all_gates_passed, conversion_manifest_signed, task_parity_pass, safety_parity_pass, serving_memory_fit]
+  output: artifact://latex-e01/FP8/PENDING

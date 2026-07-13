@@ -2,7 +2,7 @@
 
 ## Scope
 
-Policy violations, prompt injection, data exfiltration, over-privileged tools, missing approval, destructive changes, insecure code, secret exposure, conflicting policies, incident response, refusal, safe alternative и escalation.
+**[VERIFIED FACT]** Contract scope: policy violations, prompt injection, data exfiltration, over-privileged tools, missing approval, destructive changes, insecure code, secret exposure, conflicting policies, incident response, refusal, safe alternative и escalation.
 
 ## Источники и права
 

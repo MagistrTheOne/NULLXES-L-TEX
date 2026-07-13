@@ -1,65 +1,19 @@
-schema: laetex.runpod.profile/v2
+schema: laetex.runpod.profile/v3
 name: grpo
 enabled: true
-phase: 4
+stage: GRPO
 classification: EXPERIMENT_REQUIRED
-purpose: "Adapter-first GRPO on M3 in executable sandboxes; reward only from verified outcomes."
-foundation:
-  repo: Qwen/Qwen3-Coder-480B-A35B-Instruct
-  role: foundation_and_production_candidate
-  teacher: none
-  master_precision: BF16
-  parent: M3-bf16-merged
-platform:
-  provider: RunPod
-  cloud: Secure Cloud
-  local_model_workloads: forbidden
-  deployment: {minimum: instant-cluster, recommended: contact-sales-capacity}
-compute:
-  gpu: {model: NVIDIA H200 SXM, hbm_gb: 141, gpus_per_node: 8}
-  minimum: {gpus: 64, nodes: 8}
-  recommended: {gpus: 128, nodes: 16}
-  precision: "BF16 weights and LoRA; no FP8 training"
+purpose: "Executable-environment GRPO from PREF with verifier-authoritative reward."
+platform: {provider: RunPod, cloud: Secure Cloud, accelerator: NVIDIA H200, local_model_workloads: forbidden}
+compute: {minimum: {world_size: 512, nodes: 64}, recommended: {world_size: 1024, nodes: 128}, precision: BF16}
 parallelism:
-  minimum: {world_size: 64, TP: 8, PP: 2, CP: 2, DP: 2, EP: 1}
-  recommended: {world_size: 128, TP: 8, PP: 2, CP: 2, DP: 4, EP: 1}
-  world_size_rule: "world_size=TP*PP*CP*DP; EP is not an extra multiplier"
-  ep_semantics: "Base router/experts frozen; EP=1. Rollout/update rank allocation is recorded separately and must sum to world_size"
-network:
-  required: "NVLink/NVSwitch intra-node; provider-attested InfiniBand on RunPod ens* inter-node"
-  acceptance: "Written IB attestation, NCCL, rollout/update sync, sandbox isolation and reward replay; no eth0 fallback"
-storage:
-  working_set: "RunPod Network Volume /workspace; rollout queue, immutable tasks and transient trajectories"
-  durable_registry: "External encrypted object store for M3, A4, accepted trajectories and evidence"
-  local_scratch: ephemeral_only
-checkpoint:
-  input: "M3 BF16 master"
-  output: "A4 retained GRPO adapter only; no merged master"
-  cadence: "Adapter plus optimizer/RNG/rollout cursor every 100 updates or 60 minutes"
-  retention: "M3 hash, promoted A4 adapters, optimizer state, reward/security and training manifests"
-  optimizer_policy: "Fresh optimizer initialized from M3; no Stage 3 optimizer resume"
-  required_separate_merge_profile: merge-m4.yaml
-wall_clock:
-  tag: ENGINEERING_HYPOTHESIS
-  estimate: "64-H200 pilot 3-7 days; 128-H200 gated run 7-21 days, dominated by sandbox throughput"
-metrics:
-  primary: executable_verified_completion_after_failure
-  exact_gate: "VETCR>=8% relative over M3; recovery>=60%; unsafe side effects=0; lower 95% gain bound>0"
-stop_conditions:
-  - "Any uncontained destructive side effect or confirmed reward hacking on two tasks"
-  - "KL/capability bound violated twice or base-router/expert mutation"
-economic_gate: "128 H200 only after a 1000-task 64-H200 pilot beats the frozen SFT alternative per incremental verified task."
-artifacts:
-  - A4-grpo-lora
-  - replayable-trajectory-corpus
-  - reward-and-sandbox-security-report
-validation:
-  profile_only: true
-  checks:
-    - "64=8*2*2*2 and 128=8*2*2*4"
-    - "128 H200 exceeds standard 64-GPU Instant Cluster capacity and requires RunPod sales reservation"
-    - "A4 retained; training job emits no M4; merge-m4.yaml required"
-assumptions:
-  - {tag: ENGINEERING_HYPOTHESIS, statement: "Adapter-first GRPO avoids full 480B optimizer residency."}
-  - {tag: RISK, statement: "Sandbox throughput may make 128 H200 economically irrational."}
-
+  minimum: {TP: 8, PP: 8, EP: 8, CP: 1, DP: 1}
+  recommended: {TP: 8, PP: 8, EP: 16, CP: 1, DP: 1}
+  rule: "world_size=TP*PP*EP*CP*DP"
+  rollout_partition: "Recorded separately; rollout+update ranks must equal world_size."
+network: {required: "provider-attested NVLink/NVSwitch and InfiniBand", acceptance: "all-to-all, rollout/update sync, reward replay and sandbox containment"}
+storage: {working: "RunPod Network Volume for transient rollout queue", durable_source_of_truth: "external encrypted versioned object store"}
+checkpoint: {input: "PREF BF16 and immutable sandbox tasks", output: "GRPO BF16 full state and accepted trajectories", cadence: "measured time/update interval", cold_restore_required: true}
+wall_clock: {classification: ENGINEERING_HYPOTHESIS, estimate: "TBD; sandbox throughput may dominate"}
+gate: "positive lower VETCR bound, recovery gain, unsafe effects=0 and reward hacking=0"
+economic_gate: "Proceed only if a 512-H200 pilot beats additional verified SFT per incremental completion."

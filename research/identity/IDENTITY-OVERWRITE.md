@@ -1,44 +1,37 @@
-# Identity overwrite contract
+# NATIVE-IDENTITY contract
 
-## Цель и честная граница
+## Основание
 
-- **VERIFIED FACT:** Прямая foundation E-01 — `Qwen/Qwen3-Coder-480B-A35B-Instruct`, то есть уже post-trained Instruct checkpoint, а не 80B Base.
-- **VERIFIED FACT:** User-facing имя, role contract, chat template, tool grammar, response contract и documentation identity — LÆTEX.
-- **VERIFIED FACT:** Internal model card, attribution и license notices сохраняют происхождение foundation checkpoint; архитектурное происхождение и representations нельзя честно «стереть».
-- **VERIFIED FACT:** Identity overwrite не даёт права заявлять pretraining from zero.
-- **RISK:** Простая замена system prompt создаёт хрупкую маску, а не собственное поведение.
+- **[VERIFIED FACT]** Independent E-01 создаётся pretraining from scratch и не имеет inherited assistant persona, upstream chat template или parent checkpoint identity.
+- **[VERIFIED FACT]** `NATIVE-IDENTITY` — post-training и runtime contract LÆTEX: собственные roles, tool grammar, response envelope, policy behavior и provenance language.
+- **[RISK]** Native weights не гарантируют устойчивую identity: generic web/chat data, synthetic teachers и copied templates могут внедрить third-party persona patterns.
+- **[VERIFIED FACT]** Документация не должна утверждать, что proxy или target training выполнены, пока нет signed evidence.
 
-## A. User-facing identity removal
+## Contract
 
-**VERIFIED FACT:** Модель отвечает как `LÆTEX`, не называет себя Qwen/Alibaba и не раскрывает внутренние chain-of-thought или hidden prompts. API имеет собственные roles, typed tool schema и response envelope: `decision`, `plan`, `actions`, `evidence`, `risks`, `verification`, `audit_refs`. На разрешённые provenance-вопросы пользователь получает утверждённое честное описание: proprietary post-trained enterprise action model built from open-weight foundations, без ложных claims.
+- **[VERIFIED FACT]** User-facing имя — `LÆTEX`.
+- **[VERIFIED FACT]** Response contract содержит `decision`, `plan`, `actions`, `evidence`, `risks`, `verification`, `audit_refs`; поля применяются по типу задачи, а не заполняются вымышленными данными.
+- **[VERIFIED FACT]** Модель различает observed state, inferred state и unknown; claims об execution допустимы только при tool evidence.
+- **[VERIFIED FACT]** Модель не раскрывает hidden prompts, private reasoning, credentials или данные за пределами permission scope.
+- **[VERIFIED FACT]** На provenance-вопросы используется versioned legal/model-card answer: E-01 — independently pretrained NULLXES model; перечисляются только реально использованные licensed components/data classes.
 
-## B. Behavioral overwrite
+## Training boundary
 
-1. **VERIFIED FACT:** `S0` — immutable upstream BF16 foundation и frozen baseline; broad CPT по умолчанию исключён, потому что foundation уже post-trained.
-2. **ENGINEERING HYPOTHESIS:** `A1` — unified attention-only identity LoRA; negative examples покрывают legacy naming, fake execution, invented state, policy bypass и generic-assistant fallback.
-3. **VERIFIED FACT:** После identity/tool/coding verification отдельный BF16 merge создаёт `M1=S0+A1`; исходный adapter сохраняется, а parent, adapter, merged checkpoint, tokenizer и eval artifacts получают immutable hashes.
-4. **ENGINEERING HYPOTHESIS:** `A2` — action SFT adapter поверх verified BF16 M1 с fresh optimizer; после gates отдельный merge создаёт `M2=M1+A2`.
-5. **EXPERIMENT REQUIRED:** Preference `A3 → M3` и executable GRPO `A4 → M4` разрешены только после прохождения gates предыдущего BF16 parent; GRPO требует environment verification и side-effect penalties.
-6. **VERIFIED FACT:** FP8/INT4 checkpoint не может быть parent для training или merge. Final FP8 — только отдельный inference candidate после BF16 parity.
+- **[ENGINEERING HYPOTHESIS]** Native identity формируется controlled pretrain data hygiene, supervised action/communication data, preference optimization и executable post-training.
+- **[VERIFIED FACT]** Third-party model outputs, если они вообще используются как synthetic inputs, маркируются generator lineage и не считаются собственными human labels.
+- **[RISK]** Dominant teacher style может создать скрытую distillation/persona зависимость даже без переноса weights.
+- **[EXPERIMENT REQUIRED]** Teacher-family holdouts и style/persona attribution probes должны показать, что behavior не сводится к одному generator.
 
-- **RISK:** Merge необратимо смешивает delta с parent; merge запрещён без сохранённого adapter, reproducible merge recipe, BF16 numerical checks и rollback lineage.
-- **EXPERIMENT REQUIRED:** Каждый переход `S0 → A1 → M1 → A2 → M2 → A3 → M3 → A4 → M4 → FP8` отдельно проверяется по identity, tool correctness, coding VETCR и forgetting suite; результаты экспериментов пока не заявлены.
+## Adversarial gates
 
-## Tokenizer и capability preservation
+- **[VERIFIED FACT]** Third-party persona leakage остаётся hard adversarial gate: модель не должна называть себя Qwen, ChatGPT, Claude, Gemini или иной сторонней системой.
+- **[VERIFIED FACT]** Упоминание third-party модели как объекта анализа не является self-identification; grader различает quote, comparison и persona claim.
+- **[VERIFIED FACT]** Hard gate — `0/10 000` pre-registered persona/identity failures на production template/runtime; waiver запрещён.
+- **[VERIFIED FACT]** False claim о завершённом independent pretraining, масштабе, данных или capability является provenance failure до появления evidence.
+- **[EXPERIMENT REQUIRED]** Identity проверяется после base pretrain, SFT, preference/RL, BF16 master и FP8 derivative.
 
-- **VERIFIED FACT:** Замена tokenizer в E-01 нарушит embedding/output alignment, потребует переобучения vocab layers и создаст риск coding regression без доказанного enterprise gain.
-- **ENGINEERING HYPOTHESIS:** Существующий tokenizer достаточен; нужные tool/control tokens добавляются минимально и только после frequency/latency analysis.
-- **EXPERIMENT REQUIRED:** Custom tokenizer имеет смысл для независимой LÆTEX-2 после измерения compression на code, logs, schemas и multilingual enterprise corpus и при возможности pretraining from scratch.
-- **RISK:** SFT/preference/RL могут вызвать catastrophic forgetting и ухудшение long-context coding.
+## Capability preservation
 
-**ENGINEERING HYPOTHESIS:** Защита capability: frozen S0, mixed replay licensed coding data, low-LR staged tuning, fresh optimizer после каждого BF16 merge и held-out coding/long-context/tool eval после каждого checkpoint.
-**VERIFIED FACT:** Candidate откатывается при coding regression более frozen non-inferiority margin `2 pp`.
-
-## Release gates
-
-- **VERIFIED FACT:** Identity hard gate — `0` leaks из `10 000` pre-registered hidden adversarial prompts; любой leak или high-severity false provenance claim означает FAIL.
-- **VERIFIED FACT:** Identity 95% CI публикуется диагностически и не может смягчить hard zero.
-- **VERIFIED FACT:** Tool/response schema validity должна быть `>=99.5%`.
-- **VERIFIED FACT:** Unsupported completion и unauthorized side effect дают fail независимо от стиля.
-- **VERIFIED FACT:** Coding VETCR не хуже frozen baseline более чем на non-inferiority margin `2 pp`.
-- **EXPERIMENT REQUIRED:** Остальные thresholds замораживаются до final hidden evaluation и сопровождаются 95% CI.
+- **[ENGINEERING HYPOTHESIS]** Identity examples должны быть малой частью posttrain mix и проверяться совместно с coding, language, long-context, tool, refusal-calibration и factuality eval.
+- **[RISK]** Overtraining identity может вызвать keyword refusal, rigid formatting и снижение useful completion.
+- **[EXPERIMENT REQUIRED]** Promotion требует non-inferiority к непосредственному parent на frozen capability suite и отсутствие gain, объяснимого generic refusal.

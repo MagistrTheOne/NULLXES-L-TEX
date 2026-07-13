@@ -1,184 +1,157 @@
-# Документационный schema/template. Значения результатов намеренно отсутствуют.
-schema: laetex.eval.baseline-manifest/v1
-schema_version: "1.0.0"
+# Readiness/evidence schema. Placeholder values are not experimental results.
+schema: laetex.eval.readiness-manifest/v2
+schema_version: "2.0.0"
+
 manifest:
+  classification: VERIFIED_FACT
   immutable_id: "<IMMUTABLE_MANIFEST_ID>"
-  content_hash: "<SHA256_MANIFEST_HASH>"
-  created_at_utc: "<RFC3339_TIMESTAMP>"
+  content_hash: "<SHA256>"
   status: template_not_frozen
+  created_at_utc: "<RFC3339>"
+
+program:
   classification: VERIFIED_FACT
+  model: LÆTEX_E-01
+  origin: independent_pretraining_from_scratch
+  inherited_checkpoint: null
+  target_run_status: not_approved
+  experimental_results_claimed: false
 
-foundation:
-  classification: VERIFIED_FACT
-  repository: Qwen/Qwen3-Coder-480B-A35B-Instruct
-  revision: 9d90cf8fca1bf7b7acca42d3fc9ae694a2194069
-  revision_is_weight_sha256: false
-  checkpoint_hash: "sha256:PENDING_WEIGHT_MANIFEST"
-  expected_weight_shards: 241
-  weight_shard_hashes: PENDING_SOURCE_PREFLIGHT
-  config_hash: PENDING_SOURCE_PREFLIGHT
-  tokenizer_hash: PENDING_SOURCE_PREFLIGHT
-  chat_template_hash: PENDING_SOURCE_PREFLIGHT
-  license_hash: PENDING_SOURCE_PREFLIGHT
-  notices_hash: PENDING_SOURCE_PREFLIGHT
-  format: BF16
-  training_stage: post_trained_instruct
-  broad_cpt_default: excluded
-  same_model_teacher_role: excluded
-  source_preflight_status: blocked_pending_runpod_hashing
-  api_evidence:
-    checked_at: "2026-07-13"
-    safetensors_bf16_parameters: 480154875392
-    used_storage_bytes: 960313541352
-    license_file_present: true
-    license_metadata: apache-2.0
-
-lineage:
-  classification: VERIFIED_FACT
-  canonical_sequence: "S0 → A1 → M1 → A2 → M2 → A3 → M3 → A4 → M4 → FP8"
-  s0:
-    role: immutable_upstream_bf16
-    parent: null
-    checkpoint_hash: "<S0_BF16_CHECKPOINT_MERKLE_ROOT>"
-    status: blocked_pending_source_preflight
-  m1:
-    role: attention_only_identity_lora_then_bf16_merge
-    parent: s0
-    adapter_hash: "<A1_IDENTITY_ADAPTER_HASH>"
-    adapter_retained: true
-    merge_recipe_hash: "<M1_MERGE_RECIPE_HASH>"
-    merged_bf16_checkpoint_hash: "<M1_BF16_MERGED_HASH>"
-    optimizer_state: fresh
-    gate_report_hash: "<M1_IDENTITY_TOOL_CODING_GATE_REPORT_HASH>"
-    status: not_started
-  m2:
-    role: attention_only_action_sft_then_bf16_merge
-    parent: m1
-    adapter_hash: "<A2_ACTION_ADAPTER_HASH>"
-    adapter_retained: true
-    merge_recipe_hash: "<M2_MERGE_RECIPE_HASH>"
-    merged_bf16_checkpoint_hash: "<M2_BF16_MERGED_HASH>"
-    optimizer_state: fresh
-    gate_report_hash: "<M2_IDENTITY_TOOL_CODING_GATE_REPORT_HASH>"
-    status: not_started
-  m3:
-    role: preference_A3_then_bf16_merge
-    parent: m2
-    adapter_hash: "<A3_PREFERENCE_ADAPTER_HASH_OR_NOT_STARTED>"
-    adapter_retained: true
-    merge_recipe_hash: "<M3_MERGE_RECIPE_HASH_OR_NOT_STARTED>"
-    merged_bf16_checkpoint_hash: "<M3_BF16_MERGED_HASH_OR_NOT_STARTED>"
-    optimizer_state: fresh
-    gate_report_hash: "<M3_PREFERENCE_SAFETY_CODING_GATE_REPORT_HASH_OR_NOT_STARTED>"
-    status: not_started
-  m4:
-    role: executable_GRPO_A4_then_bf16_merge
-    parent: m3
-    adapter_hash: "<A4_GRPO_ADAPTER_HASH_OR_NOT_STARTED>"
-    adapter_retained: true
-    merge_recipe_hash: "<M4_MERGE_RECIPE_HASH_OR_NOT_STARTED>"
-    merged_bf16_checkpoint_hash: "<M4_BF16_MERGED_HASH_OR_NOT_STARTED>"
-    optimizer_state: fresh
-    gate_report_hash: "<M4_GRPO_RELEASE_GATE_REPORT_HASH_OR_NOT_STARTED>"
-    status: not_started
-  fp8:
-    role: serving_derivative_only
-    parent: m4
-    conversion_manifest_hash: "<FP8_CONVERSION_MANIFEST_HASH_OR_NOT_STARTED>"
-    artifact_hash: "<FP8_SERVING_DERIVATIVE_HASH_OR_NOT_STARTED>"
-    parity_report_hash: "<FP8_BF16_PARITY_REPORT_HASH_OR_NOT_STARTED>"
-    training_or_merge_parent: false
-    status: not_started
-
-merge_policy:
-  classification: VERIFIED_FACT
-  parent_precision: BF16
-  forbidden_parent_precisions: [FP8, INT4]
-  require_retained_adapter: true
-  require_immutable_hashes: true
-  require_fresh_optimizer: true
-  require_pre_post_merge_regression: true
-  require_identity_tool_gates: true
-
-task_splits:
-  repository_engineering_id: "<IMMUTABLE_SPLIT_ID>"
-  enterprise_systems_id: "<IMMUTABLE_SPLIT_ID>"
-  governance_safe_execution_id: "<IMMUTABLE_SPLIT_ID>"
-  corporate_communication_id: "<IMMUTABLE_SPLIT_ID>"
-  private_held_out_manifest_hash: "<PRIVATE_HOLDOUT_MANIFEST_HASH>"
-  contamination_denylist_hash: "<CONTAMINATION_DENYLIST_HASH>"
-
-thresholds:
+architecture_readiness:
   classification: EXPERIMENT_REQUIRED
-  vetcr_target: "<FREEZE_BEFORE_RUN>"
-  vetcr_lcb_min: "<FREEZE_BEFORE_RUN>"
-  vetcr_delta_min: "<FREEZE_BEFORE_RUN>"
-  tool_validity_min: "<FREEZE_BEFORE_RUN>"
-  coding_non_inferiority_margin_pp: 2
-  identity_hard_gate_count: 0
-  identity_prompt_count: 10000
-  cost_per_verified_task_ceiling: "<FREEZE_BEFORE_RUN>"
-  latency_envelope_id: "<FROZEN_LATENCY_ENVELOPE_ID>"
-  clean_run_tolerance_id: "<FROZEN_TOLERANCE_ID>"
+  spec_hash: "<ARCHITECTURE_SPEC_HASH>"
+  pytorch_reference_hash: "<REFERENCE_IMPLEMENTATION_HASH>"
+  huggingface_config_hash: "<HF_CONFIG_HASH>"
+  megatron_config_hash: "<MEGATRON_CONFIG_HASH>"
+  parity_report_hash: "<PYTORCH_HF_MEGATRON_PARITY_REPORT>"
+  parameter_count_report_hash: "<PARAMETER_ACCOUNTING_REPORT>"
+  initialization_report_hash: "<INITIALIZATION_REPORT>"
+  attention_kernel_report_hash: "<HYBRID_ATTENTION_KERNEL_REPORT>"
+  moe_router_report_hash: "<ROUTER_LOAD_BALANCE_REPORT>"
+  status: not_started
 
-confidence_intervals:
-  unweighted_binary_method: wilson_two_sided_95
-  paired_comparison_method: stratified_cluster_bootstrap_95
-  bootstrap_resamples: 10000
-  identity_diagnostic_ci: wilson_two_sided_95
-  identity_hard_gate: "0 leaks / 10,000 pre-registered adversarial prompts; CI cannot soften zero"
+tokenizer_readiness:
+  classification: EXPERIMENT_REQUIRED
+  candidate_id: "<TOKENIZER_CANDIDATE_ID>"
+  training_snapshot_hash: "<TOKENIZER_CORPUS_HASH>"
+  model_hash: "<TOKENIZER_MODEL_HASH>"
+  vocab_and_special_tokens_hash: "<VOCAB_CONTRACT_HASH>"
+  normalization_hash: "<NORMALIZATION_CONFIG_HASH>"
+  compression_report_hash: "<DOMAIN_COMPRESSION_REPORT>"
+  byte_fallback_report_hash: "<BYTE_FALLBACK_REPORT>"
+  multilingual_code_regression_hash: "<TOKENIZER_REGRESSION_REPORT>"
+  status: not_started
 
-runpod_h200_attestation:
-  provider: RunPod
+corpus_readiness:
+  classification: EXPERIMENT_REQUIRED
+  pretrain_snapshot_merkle_root: "<PRETRAIN_CORPUS_MERKLE_ROOT>"
+  accepted_token_count: "<TOKEN_COUNT_BY_TOKENIZER>"
+  planning_range_tokens: "4T-6T"
+  planning_range_is_approved_budget: false
+  hybrid_mix_manifest_hash: "<HYBRID_MIX_HASH>"
+  context_curriculum_hash: "<CONTEXT_CURRICULUM_HASH>"
+  rights_report_hash: "<RIGHTS_REPORT_HASH>"
+  pii_secrets_report_hash: "<PII_SECRETS_REPORT_HASH>"
+  dedup_report_hash: "<DEDUP_REPORT_HASH>"
+  contamination_report_hash: "<CONTAMINATION_REPORT_HASH>"
+  tenant_default_deny_report_hash: "<TENANT_ISOLATION_REPORT_HASH>"
+  deletion_impact_drill_hash: "<DELETION_DRILL_HASH>"
+  status: not_started
+
+proxy_readiness:
+  classification: EXPERIMENT_REQUIRED
+  proxy_1b:
+    checkpoint_hash: "<1B_CHECKPOINT_HASH>"
+    run_manifest_hash: "<1B_RUN_MANIFEST_HASH>"
+    scaling_report_hash: "<1B_SCALING_REPORT_HASH>"
+    capability_report_hash: "<1B_CAPABILITY_REPORT_HASH>"
+    status: not_started
+  proxy_7b:
+    checkpoint_hash: "<7B_CHECKPOINT_HASH>"
+    run_manifest_hash: "<7B_RUN_MANIFEST_HASH>"
+    scaling_report_hash: "<7B_SCALING_REPORT_HASH>"
+    capability_report_hash: "<7B_CAPABILITY_REPORT_HASH>"
+    status: not_started
+  proxy_30b:
+    checkpoint_hash: "<30B_CHECKPOINT_HASH>"
+    run_manifest_hash: "<30B_RUN_MANIFEST_HASH>"
+    scaling_report_hash: "<30B_SCALING_REPORT_HASH>"
+    capability_report_hash: "<30B_CAPABILITY_REPORT_HASH>"
+    economics_report_hash: "<30B_TO_TARGET_ECONOMICS_HASH>"
+    required_before_target_approval: true
+    status: not_started
+  scaling_law_fit_hash: "<SCALING_LAW_FIT_HASH>"
+  mup_transfer_report_hash: "<MUP_TRANSFER_REPORT_HASH>"
+  target_approval: blocked
+
+pretrain_capability:
+  classification: EXPERIMENT_REQUIRED
+  heldout_loss_manifest_hash: "<HELDOUT_LOSS_MANIFEST_HASH>"
+  tokenizer_metrics_hash: "<TOKENIZER_METRICS_HASH>"
+  code_math_language_suite_hash: "<BASE_CAPABILITY_SUITE_HASH>"
+  context_suite_hash: "<CONTEXT_SUITE_HASH>"
+  routing_health_suite_hash: "<ROUTING_HEALTH_SUITE_HASH>"
+  memorization_suite_hash: "<MEMORIZATION_SUITE_HASH>"
+  thresholds_hash: "<FROZEN_PRETRAIN_THRESHOLDS_HASH>"
+  results_hash: "<RESULTS_OR_NOT_STARTED>"
+  status: not_started
+
+context_stages:
+  classification: EXPERIMENT_REQUIRED
+  c0_4k: {status: not_started, report_hash: "<C0_REPORT_HASH>"}
+  c1_8k: {status: not_started, report_hash: "<C1_REPORT_HASH>"}
+  c2_16k_32k: {status: not_started, report_hash: "<C2_REPORT_HASH>"}
+  c3_64k: {status: not_started, report_hash: "<C3_REPORT_HASH>"}
+  c4_128k_256k:
+    status: deferred_pending_evidence
+    report_hash: "<C4_REPORT_HASH_OR_NOT_STARTED>"
+
+posttrain_enterprise_action:
+  classification: EXPERIMENT_REQUIRED
+  base_pretrain_checkpoint_hash: "<BF16_PRETRAIN_BASE_HASH>"
+  sft_checkpoint_hash: "<SFT_HASH_OR_NOT_STARTED>"
+  preference_checkpoint_hash: "<PREFERENCE_HASH_OR_NOT_STARTED>"
+  executable_rl_checkpoint_hash: "<EXECUTABLE_RL_HASH_OR_NOT_STARTED>"
+  native_identity_report_hash: "<NATIVE_IDENTITY_REPORT_HASH>"
+  task_splits:
+    repository_engineering: "<IMMUTABLE_SPLIT_ID>"
+    enterprise_systems: "<IMMUTABLE_SPLIT_ID>"
+    governance_safe_execution: "<IMMUTABLE_SPLIT_ID>"
+    corporate_communication: "<IMMUTABLE_SPLIT_ID>"
+  vetcr_thresholds_hash: "<FROZEN_VETCR_THRESHOLDS_HASH>"
+  status: not_started
+
+release_artifacts:
+  classification: EXPERIMENT_REQUIRED
+  bf16_master_hash: "<BF16_MASTER_HASH_OR_NOT_STARTED>"
+  bf16_master_gate_report_hash: "<BF16_MASTER_GATE_REPORT_HASH>"
+  fp8_derivative_hash: "<FP8_HASH_OR_NOT_STARTED>"
+  fp8_bf16_parity_report_hash: "<FP8_PARITY_REPORT_HASH_OR_NOT_STARTED>"
+  status: not_started
+
+compute_and_recovery:
+  classification: EXPERIMENT_REQUIRED
   accelerator: NVIDIA_H200_SXM_141GB
-  allocation_id: "<RUNPOD_ALLOCATION_ID>"
-  topology_attestation_ref: "<SIGNED_TOPOLOGY_ATTESTATION_URI>"
-  nvlink_nvswitch_attestation_ref: "<SIGNED_INTRA_NODE_ATTESTATION_URI>"
-  infiniband_attestation_ref: "<SIGNED_IB_ATTESTATION_URI>"
-  nccl_acceptance_report_ref: "<NCCL_IB_ACCEPTANCE_REPORT_URI>"
-  compute_attestation_hash: "<COMPUTE_ATTESTATION_HASH>"
+  allowed_target_capacity: [512, 1024]
+  topology_attestation_hash: "<TOPOLOGY_ATTESTATION_HASH>"
+  nccl_acceptance_hash: "<NCCL_ACCEPTANCE_HASH>"
+  mfu_report_hash: "<MFU_REPORT_HASH>"
+  checkpoint_strategy_hash: "<CHECKPOINT_STRATEGY_HASH>"
+  restore_drill_hash: "<RESTORE_DRILL_HASH>"
+  budget_model_hash: "<BUDGET_MODEL_HASH>"
+  target_run_allocation_confirmed: false
 
-artifact_hashes:
-  dataset_snapshot: "<DATASET_SNAPSHOT_MERKLE_ROOT>"
-  checkpoint_bundle: "<CHECKPOINT_BUNDLE_HASH>"
-  runtime_image: "<OCI_IMAGE_DIGEST>"
-  inference_config: "<INFERENCE_CONFIG_HASH>"
-  chat_template: PENDING_SOURCE_PREFLIGHT
-  tool_schemas: "<TOOL_SCHEMA_BUNDLE_HASH>"
-  policy_bundle: "<POLICY_BUNDLE_HASH>"
-  sandbox_images: "<SANDBOX_IMAGE_SET_HASH>"
-  graders: "<GRADER_BUNDLE_HASH>"
-  statistical_code: "<STATISTICAL_CODE_REVISION_HASH>"
-  lineage_bundle: "<S0_A1_M1_A2_M2_A3_M3_A4_M4_FP8_LINEAGE_BUNDLE_HASH>"
-  merge_verification_reports: "<MERGE_VERIFICATION_REPORT_SET_HASH>"
-
-hard_gates:
-  identity:
-    threshold: "0/10000"
-    report_ref: "<IDENTITY_REPORT_URI>"
-  tool:
-    threshold_ref: "<FROZEN_TOOL_GATE_ID>"
-    report_ref: "<TOOL_VALIDITY_REPORT_URI>"
-  policy:
-    p0_escapes: 0
-    report_ref: "<POLICY_RED_TEAM_REPORT_URI>"
-  rollback:
-    required: true
-    rto: "<FREEZE_BEFORE_RUN>"
-    rpo: "<FREEZE_BEFORE_RUN>"
-    evidence_ref: "<ROLLBACK_DRILL_EVIDENCE_URI>"
-  cost:
-    threshold_ref: "<FROZEN_COST_GATE_ID>"
-    report_ref: "<COST_REPORT_URI>"
-
-ci_execution:
-  method: "Pinned CI runner validates schema, hashes, signatures, split sealing and evidence resolvability"
-  workflow_revision: "<CI_WORKFLOW_REVISION_HASH>"
-  runner_image_digest: "<CI_RUNNER_IMAGE_DIGEST>"
-  verification_log_ref: "<CI_VERIFICATION_LOG_URI>"
+anti_contamination:
+  classification: VERIFIED_FACT
+  pretrain_eval_registry_hash: "<SEALED_PRETRAIN_EVAL_REGISTRY_HASH>"
+  posttrain_eval_registry_hash: "<SEALED_POSTTRAIN_EVAL_REGISTRY_HASH>"
+  denylist_hash: "<CONTAMINATION_DENYLIST_HASH>"
+  report_hash: "<CONTAMINATION_REPORT_HASH>"
 
 signatures:
+  research_lead: "<SIGNATURE_REF>"
+  data_lead: "<SIGNATURE_REF>"
   evaluation_lead: "<SIGNATURE_REF>"
-  safety_governance_lead: "<SIGNATURE_REF>"
   platform_lead: "<SIGNATURE_REF>"
-  release_manager: "<SIGNATURE_REF>"
+  safety_governance_lead: "<SIGNATURE_REF>"
+  program_owner: "<SIGNATURE_REF>"

@@ -1,57 +1,43 @@
 # FOUNDATION PLANE
 
-## Назначение
+## Decision
 
-- **VERIFIED FACT:** Foundation Plane фиксирует прямой E-01 backbone `Qwen/Qwen3-Coder-480B-A35B-Instruct` и происхождение derivative model.
-- **VERIFIED FACT:** Official card/config: causal LM, `Pretraining & Post-training`, 480B total/35B activated, 62 layers, hidden 6144, GQA 96Q/8KV, head dimension 128, 160 routed experts, Top-8, no shared expert (`shared_expert_intermediate_size=0`), expert intermediate 2560, vocabulary 151 936, native context 262 144, BF16, Apache-2.0.
-- **VERIFIED FACT:** Отдельно выпущенный официальный 480B Base checkpoint в проверенных источниках не идентифицирован; upstream E-01 является Instruct.
-- **VERIFIED FACT:** Official Hugging Face API evidence, проверенный 2026-07-13, закрепляет revision `9d90cf8fca1bf7b7acca42d3fc9ae694a2194069`, safetensors BF16 parameter count `480154875392`, `usedStorage=960313541352`, наличие `LICENSE` в file list и metadata `apache-2.0`.
-- **RISK:** Commit SHA является revision identifier, а не SHA-256 hash весов. Training заблокирован до RunPod source preflight всех 241 shards, config, tokenizer, chat template и license/notices.
-- **VERIFIED FACT:** 80B/3B Next Base не является E-01 foundation и может существовать только как исторически отвергнутая/альтернативная branch.
-- **RISK:** Model card не является доказательством качества LÆTEX на enterprise tasks.
+- **VERIFIED FACT:** ADR-0007 принимает independent from-scratch E-01 без external weight parent, checkpoint initialization или inherited tokenizer.
+- **ENGINEERING HYPOTHESIS:** Target architecture: 64 layers; `d_model=8192`; GQA `64Q/8KV`; head dimension 128; hybrid attention `7 local : 1 global`; local window 16 384; 144 routed experts + 1 shared expert; Top-6; expert `d_ff=2048`; vocabulary 128K; context target 262 144; BF16 master.
+- **EXPERIMENT REQUIRED:** `~478.9B total / ~34.4B active` — provisional estimates pending executable parameter-count proxy and exact MoE placement, shared-expert, embedding/output and attention accounting.
+- **VERIFIED FACT:** Qwen не является weight parent, tokenizer source или runtime dependency; допустимые benchmark/teacher roles ограничены ADR-0009.
 
-## Inputs / outputs
+## Model boundary
 
-- **ENGINEERING HYPOTHESIS:** Inputs: tokenizer-preserving token streams, versioned training manifests, LÆTEX role/tool contracts, adapter selection и bounded CodeWorld context.
-- **ENGINEERING HYPOTHESIS:** Outputs: token probabilities или schema-constrained action proposals; outputs не являются permissions, evidence или authoritative state.
+- **ENGINEERING HYPOTHESIS:** Inputs: token streams custom tokenizer T0, versioned context slices, role/tool contracts and policy projections.
+- **ENGINEERING HYPOTHESIS:** Outputs: token probabilities and schema-constrained action proposals; outputs are not permissions, evidence or authoritative state.
+- **VERIFIED FACT:** Operational truth remains in CodeWorld, event ledger and tool observations.
+- **RISK:** Prompt injection, hallucinated state and unsafe actions remain possible even after successful pretraining/post-training; runtime treats model output as untrusted.
 
-## Trust boundary
+## Architecture validation
 
-- **VERIFIED FACT:** Checkpoint и model server находятся внутри isolated H200 compute boundary; prompts входят только после tenant authorization и policy projection.
-- **VERIFIED FACT:** Foundation не получает raw credentials, secret values или unrestricted tenant corpus.
-- **RISK:** Prompt injection и memorized upstream behavior остаются возможными; runtime обязан считать output недоверенным.
+- **EXPERIMENT REQUIRED:** Proxy suite must validate parameter count, forward/backward numerical stability, router entropy, expert utilization, capacity overflow, load balance, checkpoint resume and scale-transfer assumptions.
+- **EXPERIMENT REQUIRED:** Hybrid attention must be trained as part of scratch pretraining and tested at each context curriculum stage; a 262 144 target is not a verified capability before long-context evaluation.
+- **ENGINEERING HYPOTHESIS:** FP32 router logits/critical reductions, BF16 master weights and fused H200 kernels are starting implementation choices, not verified production settings.
+- **RISK:** Top-6 across 144 experts raises all-to-all traffic; H200 EP/TP/PP/CP mapping and provider-attested InfiniBand must pass representative communication tests.
+- **RISK:** Shared expert cost, 128K embeddings and global-attention layers can move active/total estimates materially.
 
-## Authoritative state
+## Scratch lineage
 
-- **VERIFIED FACT:** Model weights авторитетны только для versioned behavior artifact. CodeWorld/event ledger/tool observations авторитетны для operational state.
-- **VERIFIED FACT:** Model-generated claims без evidence ID не обновляют state.
+- **VERIFIED FACT:** Canonical chain is `C0 → T0 → R0 → P0..Pn → G0 → PT0..PTn → B0 → SFT0 → PREF0 → RL0 → M0`.
+- **VERIFIED FACT:** `R0` is reproducible random initialization; no external model hash appears in the weight-parent graph.
+- **VERIFIED FACT:** `B0` and `M0` are immutable BF16 artifacts; any FP8 or other serving export is a parity-gated derivative and never a training parent.
+- **VERIFIED FACT:** Teacher candidates can be data parents only through ADR-0009 manifests; teacher weights cannot be weight parents.
+- **RISK:** Full-scale pretraining before signed `G0` is prohibited.
 
-## Tenant boundary
+## Compute and locality
 
-- **VERIFIED FACT:** Base weights общие; tenant data, KV/prefix cache, adapters, logs и context snapshots namespace/encryption-isolated.
-- **RISK:** Shared batching/cache может создать side channel; cross-tenant cache запрещён до отдельного security proof.
-
-## Adaptation policy
-
-- **ENGINEERING HYPOTHESIS:** Канонический lineage: `S0 → A1 → M1 → A2 → M2 → A3 → M3 → A4 → M4 → FP8`; `A1..A4` — retained adapters, `M1..M4` — immutable BF16 merges, FP8 — только serving derivative после parity.
-- **ENGINEERING HYPOTHESIS:** Embeddings, tokenizer, internal MoE router и все routed experts на начальных стадиях заморожены. LoRA targets выбираются только после module inventory и memory profiling exact pinned checkpoint.
-- **ENGINEERING HYPOTHESIS:** Broad CPT исключён из default recipe: upstream уже post-trained, и language-model objective может разрушить instruction/tool alignment.
-- **EXPERIMENT REQUIRED:** Узкий CPT, layer unfreezing, router adaptation или expert adaptation допускаются только как отдельные ablations после доказанного adapter ceiling и с frozen regression suite.
-- **EXPERIMENT REQUIRED:** M1, M2, M3 и M4 обязаны пройти merge integrity, weight-delta audit, identity/tool/coding/governance evaluation и reproducibility check; M4 дополнительно проходит release suite.
-- **EXPERIMENT REQUIRED:** FP8 serving derivative получает release status только после parity с BF16 M4 по VETCR, critical failures, tool schema validity и bounded numerical drift.
-- **RISK:** Router/expert adaptation может вызвать routing collapse, expert drift и catastrophic forgetting; full-parameter tuning требует отдельного compute/economic gate.
-- **RISK:** Даже LoRA merge может необратимо испортить BF16 master при ошибке dtype, scaling или target mapping; S0/M1/M2/M3/M4 хранятся как отдельные immutable artifacts.
-
-## Failure modes
-
-- **RISK:** Hallucinated state, invalid tool syntax, identity leakage, upstream persona persistence, alignment loss, context truncation, catastrophic forgetting, router drift и OOM на long context.
-- **EXPERIMENT REQUIRED:** Каждая failure class имеет frozen regression set и severity-specific release threshold.
-
-## Observability
-
-- **ENGINEERING HYPOTHESIS:** Логируются model/checkpoint hash, adapter versions, tokenizer hash, context token counts, cache policy, route, latency, finish reason и schema validation; content redacted по policy.
-- **VERIFIED FACT:** Training lineage связывает source manifest, code/container digest, H200 topology, seeds, optimizer state и checkpoint.
+- **VERIFIED FACT:** Training, evaluation, checkpoint conversion, teacher generation and model inference are H200-only.
+- **VERIFIED FACT:** Production topology requires homogeneous NVIDIA H200 HGX nodes, NVLink/NVSwitch intra-node and provider-attested InfiniBand inter-node.
+- **VERIFIED FACT:** Local control plane may develop code/configs, orchestrate jobs and inspect redacted metrics; it stores no weights, optimizer states, training corpus or customer payloads.
+- **EXPERIMENT REQUIRED:** Before paid scale-up: NCCL acceptance, storage throughput, atomic checkpoint publish, resume/recovery and budget cap must pass.
 
 ## Release artifact
 
-- **VERIFIED FACT:** Release artifact содержит signed BF16 M4 reference, FP8 derivative reference после parity, tokenizer/chat template, полный `S0 → A1 → M1 → A2 → M2 → A3 → M3 → A4 → M4 → FP8` lineage, adapter compatibility manifest, internal model card, pinned upstream revision, upstream notices, eval dossier и reproducibility record.
+- **VERIFIED FACT:** Release dossier contains C0/T0/R0 provenance, proxy evidence, signed G0, full checkpoint lineage, BF16 M0, parity-approved serving derivative, eval artifacts, SBOM, model card and rollback pointer.
+- **RISK:** Documentation, parameter arithmetic or a successful load test alone does not prove model quality or economic viability.

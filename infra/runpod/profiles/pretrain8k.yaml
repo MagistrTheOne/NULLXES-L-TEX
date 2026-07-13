@@ -1,0 +1,19 @@
+schema: laetex.runpod.profile/v3
+name: pretrain8k
+enabled: true
+stage: P0-PRETRAIN-8K
+classification: EXPERIMENT_REQUIRED
+purpose: "Full-parameter target pretraining from I0 at 8192 tokens."
+platform: {provider: RunPod, cloud: Secure Cloud, accelerator: NVIDIA H200, local_model_workloads: forbidden}
+compute: {minimum: {world_size: 512, nodes: 64}, recommended: {world_size: 1024, nodes: 128}, precision: "BF16 master; TE FP8 compute only after proxy proof"}
+parallelism:
+  minimum: {TP: 8, PP: 8, EP: 8, CP: 1, DP: 1}
+  recommended: {TP: 8, PP: 8, EP: 16, CP: 1, DP: 1}
+  rule: "world_size=TP*PP*EP*CP*DP"
+  expert_math: "144/8=18; 144/16=9"
+network: {required: "provider-attested NVLink/NVSwitch and InfiniBand", acceptance: "NCCL all-reduce/all-to-all, distributed loss and no fallback fabric"}
+storage: {working: "RunPod Network Volume plus ephemeral NVMe cache", durable_source_of_truth: "external encrypted versioned object store"}
+checkpoint: {input: "I0/T0/D0 immutable hashes", output: "BF16 model plus distributed optimizer/RNG/cursor/token counters", cadence: "time and token interval set by measured restore SLO", cold_restore_required: true}
+wall_clock: {classification: ENGINEERING_HYPOTHESIS, estimate: "TBD from token budget, achieved MFU and proxy fit"}
+gate: "loss/gradient/router curves, token accounting, MFU/network and cold-restore gates pass"
+economic_gate: "512/1024 run requires signed scaling fit, budget cap and expected quality gain per H200-hour."

@@ -1,0 +1,13 @@
+apiVersion: nullxes.model-stage/v2
+kind: CorpusStage
+metadata: {id: D0-CORPUS, status: planned, execution_state: not_run}
+spec:
+  lane: target
+  dependencies: [T0-TOKENIZER]
+  objective: "Freeze licensed, deduplicated, PII-screened train/validation shards and curriculum."
+  token_budget: TBD_BY_PROXY_SCALING
+  source_of_truth: external_encrypted_versioned_object_store
+  required_lineage: [source, license_or_consent, transforms, hashes, pii_status, dedup_cluster, split, tokenizer_hash]
+  tenant_policy: "Raw tenant data forbidden without explicit opt-in, isolation and revocable lineage."
+  gates: [license_coverage_100_percent, orphan_samples_zero, eval_contamination_zero, shard_hashes_signed]
+  output: artifact://latex-e01/D0-CORPUS/PENDING

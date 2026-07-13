@@ -2,7 +2,7 @@
 
 ## Scope и источники
 
-Status reports, executive summaries, incident updates, customer replies, risk memos, handoffs, escalation notes и decision records. Источники: NULLXES-authored templates, licensed/public communications, human-written scenarios и synthetic drafts с human review.
+**[VERIFIED FACT]** Contract scope: status reports, executive summaries, incident updates, customer replies, risk memos, handoffs, escalation notes и decision records. Candidate sources: NULLXES-authored templates, licensed/public communications, human-written scenarios и synthetic drafts с human review.
 
 - **VERIFIED FACT:** Enterprise Voice обучает точности, evidence binding, audience adaptation и explicit uncertainty, а не декоративному «корпоративному тону».
 - **VERIFIED FACT:** Private email, chat и tickets клиента запрещены для general training по умолчанию.

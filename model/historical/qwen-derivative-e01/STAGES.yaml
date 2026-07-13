@@ -1,0 +1,19 @@
+apiVersion: nullxes.archive/v1
+kind: HistoricalStageSet
+metadata: {id: qwen-derivative-e01-stages, status: archived}
+spec:
+  executable: false
+  lineage: [S0-UPSTREAM, S1-IDENTITY, M1-IDENTITY-MERGED, S2-ACTION-SFT, M2-ACTION-MERGED, S3-PREFERENCE, M3-PREFERENCE-MERGED, S4-GRPO, M4-RELEASE, FP8-SERVING-DERIVATIVE]
+  records:
+    - {file: S0-UPSTREAM.yaml, kind: upstream_snapshot, execution_state: not_run}
+    - {file: S1-IDENTITY.yaml, kind: lora_adapter, execution_state: not_run}
+    - {file: M1-IDENTITY-MERGED.yaml, kind: bf16_merge, execution_state: not_run}
+    - {file: S2-ACTION-SFT.yaml, kind: lora_adapter, execution_state: not_run}
+    - {file: M2-ACTION-MERGED.yaml, kind: bf16_merge, execution_state: not_run}
+    - {file: S3-PREFERENCE.yaml, kind: lora_adapter, execution_state: not_run}
+    - {file: M3-PREFERENCE-MERGED.yaml, kind: bf16_merge, execution_state: not_run}
+    - {file: S4-GRPO.yaml, kind: lora_adapter, execution_state: not_run}
+    - {file: M4-RELEASE.yaml, kind: bf16_merge_release, execution_state: not_run}
+    - {file: FP8-SERVING-DERIVATIVE.yaml, kind: derivative_export, execution_state: not_run}
+  target_parent_eligibility: forbidden
+  note: "Archived normalized stage set; canonical stage files were removed."

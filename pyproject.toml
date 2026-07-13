@@ -1,0 +1,22 @@
+[build-system]
+requires = ["hatchling>=1.27"]
+build-backend = "hatchling.build"
+
+[project]
+name = "laetex-workspace"
+version = "0.1.0"
+description = "Configuration workspace for independent LÆTEX model research"
+requires-python = ">=3.11"
+dependencies = []
+
+[dependency-groups]
+dev = [
+  "jsonschema>=4.23",
+  "PyYAML>=6.0.2",
+]
+
+[tool.uv.workspace]
+members = ["packages/laetex-validation"]
+
+[tool.hatch.build.targets.wheel]
+packages = []

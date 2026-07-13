@@ -2,7 +2,7 @@
 
 ## Tasks
 
-API integration, schema evolution, event contract, IAM-safe wiring, IaC change, Kubernetes deployment, migration/rollback, SLO/runbook update, incident diagnosis и architecture plan с executable checks.
+**[VERIFIED FACT]** Contract task classes: API integration, schema evolution, event contract, IAM-safe wiring, IaC change, Kubernetes deployment, migration/rollback, SLO/runbook update, incident diagnosis и architecture plan с executable checks.
 
 ## Grading
 
@@ -13,7 +13,7 @@ API integration, schema evolution, event contract, IAM-safe wiring, IaC change, 
 
 ## Metrics
 
-VETCR, integration contract pass rate, predicted-vs-observed delta accuracy, rollback success, policy compliance, missing-evidence detection, time/cost-to-verified-state и incident recovery rate.
+**[VERIFIED FACT]** Metrics: VETCR, integration contract pass rate, predicted-vs-observed delta accuracy, rollback success, policy compliance, missing-evidence detection, time/cost-to-verified-state и incident recovery rate.
 
 ## Replayability и splits
 

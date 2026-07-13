@@ -1,0 +1,12 @@
+apiVersion: nullxes.model-stage/v2
+kind: LongContextStage
+metadata: {id: LC128K, status: planned, execution_state: not_run}
+spec:
+  lane: target
+  parent: artifact://latex-e01/LC32K/BF16/PENDING
+  context_tokens: 131072
+  objective: "Extend the accepted target checkpoint to 128K with replayed short-context mix."
+  trainable_scope: all_target_parameters
+  runtime: {accelerator: NVIDIA_H200, minimum_gpus: 512, recommended_gpus: 1024, local_training: forbidden}
+  gates: [LC32K_accepted, 128K_retrieval_and_dependency_reasoning_pass, short_context_noninferiority, CP_kernel_acceptance, resume_pass]
+  output: artifact://latex-e01/LC128K/BF16/PENDING

@@ -1,64 +1,18 @@
-schema: laetex.runpod.profile/v2
-name: preference-dpo-ipo
+schema: laetex.runpod.profile/v3
+name: preference
 enabled: true
-phase: 3
-classification: ENGINEERING_HYPOTHESIS
-purpose: "DPO/IPO BF16 LoRA on M2 using verified outcomes and cached reference log-probabilities."
-foundation:
-  repo: Qwen/Qwen3-Coder-480B-A35B-Instruct
-  role: foundation_and_production_candidate
-  teacher: none
-  master_precision: BF16
-  parent: M2-bf16-merged
-platform:
-  provider: RunPod
-  cloud: Secure Cloud
-  local_model_workloads: forbidden
-  deployment: {minimum: instant-cluster, recommended: instant-cluster}
-compute:
-  gpu: {model: NVIDIA H200 SXM, hbm_gb: 141, gpus_per_node: 8}
-  minimum: {gpus: 32, nodes: 4}
-  recommended: {gpus: 64, nodes: 8}
-  precision: "BF16 weights and LoRA; no FP8 training"
+stage: PREF
+classification: EXPERIMENT_REQUIRED
+purpose: "DPO/IPO selection on immutable SFT parent with hash-bound reference cache."
+platform: {provider: RunPod, cloud: Secure Cloud, accelerator: NVIDIA H200, local_model_workloads: forbidden}
+compute: {minimum: {world_size: 512, nodes: 64}, recommended: {world_size: 1024, nodes: 128}, precision: BF16}
 parallelism:
-  minimum: {world_size: 32, TP: 8, PP: 2, CP: 1, DP: 2, EP: 1}
-  recommended: {world_size: 64, TP: 8, PP: 2, CP: 2, DP: 2, EP: 1}
-  world_size_rule: "world_size=TP*PP*CP*DP; EP is not an extra multiplier"
-  ep_semantics: "Base router/experts frozen; EP=1; reference log-probabilities precomputed and hash-bound to M2"
-network:
-  required: "NVLink/NVSwitch intra-node; provider-attested InfiniBand on RunPod ens* inter-node"
-  acceptance: "Written IB attestation, NCCL, pair-order and distributed-loss parity; no eth0 fallback"
-storage:
-  working_set: "RunPod Network Volume /workspace; immutable pairs and cached reference log-probabilities"
-  durable_registry: "External encrypted object store for M2, A3, pairs and audit"
-  local_scratch: ephemeral_only
-checkpoint:
-  input: "M2 BF16 master and M2-bound reference cache"
-  output: "A3 retained DPO/IPO adapter only; no merged master"
-  cadence: "Adapter plus optimizer/RNG/pair cursor every 500 steps or 2 hours"
-  retention: "M2 hash, all promoted method adapters, selected A3, optimizer state and ablation report"
-  optimizer_policy: "Fresh optimizer per DPO/IPO run; no Stage 2 optimizer resume"
-  required_separate_merge_profile: merge-m3.yaml
-wall_clock:
-  tag: ENGINEERING_HYPOTHESIS
-  estimate: "2-5 days per method on 32 H200; 3-8 days for controlled DPO/IPO selection on 64"
-metrics:
-  primary: verified_preference_accuracy
-  exact_gate: "Pair accuracy>=65%; VETCR>=5% relative over M2; no safety increase; coding regression<=2 pp"
-stop_conditions:
-  - "KL leaves frozen band twice or unsafe-action rate rises"
-  - "Protected coding regression >2 pp or base-router/expert mutation"
-economic_gate: "Proceed only with executable adjudication or inter-rater agreement>=0.8."
-artifacts:
-  - A3-preference-lora
-  - dpo-ipo-selection-and-lineage
-validation:
-  profile_only: true
-  checks:
-    - "32=8*2*1*2 and 64=8*2*2*2"
-    - "A3 retained; training job emits no M3; merge-m3.yaml required"
-    - "No default teacher or online critic dependency"
-assumptions:
-  - {tag: EXPERIMENT_REQUIRED, statement: "Select DPO versus IPO on a controlled VETCR-safety Pareto comparison."}
-  - {tag: RISK, statement: "Self-generated preferences from the same foundation can amplify bias; executable evidence remains authoritative."}
-
+  minimum: {TP: 8, PP: 8, EP: 8, CP: 1, DP: 1}
+  recommended: {TP: 8, PP: 8, EP: 16, CP: 1, DP: 1}
+  rule: "world_size=TP*PP*EP*CP*DP"
+network: {required: "provider-attested NVLink/NVSwitch and InfiniBand", acceptance: "pair-order, all-to-all, loss and restore parity"}
+storage: {working: "RunPod Network Volume", durable_source_of_truth: "external encrypted versioned object store"}
+checkpoint: {input: "SFT BF16 plus parent-bound reference cache", output: "PREF BF16 full state", cadence: "measured time/update interval", cold_restore_required: true}
+wall_clock: {classification: ENGINEERING_HYPOTHESIS, estimate: "TBD after DPO/IPO pilot"}
+gate: "VETCR/pair gain, safety/capability noninferiority and frozen KL band"
+economic_gate: "Run only with executable adjudication or preregistered human agreement."

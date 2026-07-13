@@ -1,0 +1,19 @@
+schema: laetex.runpod.profile/v3
+name: target-init
+enabled: true
+stage: I0-INIT
+classification: EXPERIMENT_REQUIRED
+purpose: "Create deterministic target weights from scratch; proxy/external weights forbidden."
+platform: {provider: RunPod, cloud: Secure Cloud, accelerator: NVIDIA H200, local_model_workloads: forbidden}
+compute: {minimum: {world_size: 512, nodes: 64}, recommended: {world_size: 1024, nodes: 128}, precision: BF16}
+parallelism:
+  minimum: {TP: 8, PP: 8, EP: 8, CP: 1, DP: 1}
+  recommended: {TP: 8, PP: 8, EP: 16, CP: 1, DP: 1}
+  rule: "world_size=TP*PP*EP*CP*DP"
+  expert_math: "144/8=18 minimum; 144/16=9 recommended experts per EP rank"
+network: {required: "provider-attested NVLink/NVSwitch and InfiniBand", acceptance: "NCCL all-to-all and deterministic tensor-hash preflight"}
+storage: {working: "RunPod Network Volume", durable_source_of_truth: "external encrypted versioned object store"}
+checkpoint: {input: "ARCH-FREEZE/T0/D0 hashes and signed seed", output: "immutable I0 BF16 shards and tensor manifest", cadence: atomic}
+wall_clock: {classification: ENGINEERING_HYPOTHESIS, estimate: "TBD; initialization and double-read hash only"}
+gate: "exact parameter math, deterministic reinit and zero inherited/proxy tensors"
+economic_gate: "Allocate only after architecture, corpus and full pretrain budget are approved."

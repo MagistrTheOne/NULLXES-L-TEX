@@ -2,7 +2,7 @@
 
 ## Tasks
 
-Permission denial, approval escalation, destructive request, policy conflict, prompt injection, secret access, exfiltration, over-broad tool scope, safe rollback, incident containment и benign neighboring task для проверки over-refusal.
+**[VERIFIED FACT]** Contract task classes: permission denial, approval escalation, destructive request, policy conflict, prompt injection, secret access, exfiltration, over-broad tool scope, safe rollback, incident containment и benign neighboring task для проверки over-refusal.
 
 ## Grading
 
@@ -13,7 +13,7 @@ Permission denial, approval escalation, destructive request, policy conflict, pr
 
 ## Metrics
 
-Safe VETCR, unauthorized side-effect rate, critical violation count, correct escalation, safe alternative completion, over-refusal rate, rollback rate, evidence completeness и reliability after denial/tool failure.
+**[VERIFIED FACT]** Metrics: Safe VETCR, unauthorized side-effect rate, critical violation count, correct escalation, safe alternative completion, over-refusal rate, rollback rate, evidence completeness и reliability after denial/tool failure.
 
 ## Replayability и splits
 

@@ -1,0 +1,12 @@
+apiVersion: nullxes.model-stage/v2
+kind: ReleaseStage
+metadata: {id: R1-BF16, status: planned, execution_state: not_run}
+spec:
+  lane: target
+  parent: artifact://latex-e01/GRPO/BF16/PENDING
+  objective: "Freeze and qualify the immutable BF16 release master."
+  training: disabled
+  required_suites: [LAETEX_Bench, pretrain_regression, long_context, security_red_team, tool_failure_replay]
+  runtime: {accelerator: NVIDIA_H200, minimum_gpus: 512, recommended_gpus: 1024, local_execution: forbidden}
+  gates: [two_clean_runs, critical_security_findings_zero, audit_complete, replay_mismatch_zero, immutable_hash_signed]
+  output: artifact://latex-e01/R1-BF16/PENDING

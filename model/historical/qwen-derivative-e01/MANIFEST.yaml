@@ -1,0 +1,28 @@
+apiVersion: nullxes.archive/v1
+kind: HistoricalModelLineage
+metadata:
+  id: qwen-derivative-e01
+  status: archived
+spec:
+  canonical: false
+  superseded_by: model/README.md
+  reason: "Derivative S0/adapter/BF16-merge lineage removed from independent from-scratch E-01."
+  source_snapshot:
+    captured_from: model/stages
+    execution_state: not_run
+    files:
+      - S0-UPSTREAM.yaml
+      - S1-IDENTITY.yaml
+      - M1-IDENTITY-MERGED.yaml
+      - S2-ACTION-SFT.yaml
+      - M2-ACTION-MERGED.yaml
+      - S3-PREFERENCE.yaml
+      - M3-PREFERENCE-MERGED.yaml
+      - S4-GRPO.yaml
+      - M4-RELEASE.yaml
+      - FP8-SERVING-DERIVATIVE.yaml
+  policy:
+    executable: false
+    valid_parent_for_target_lane: false
+    canonical_profile_resolution: forbidden
+    restore_requires_new_architecture_decision: true

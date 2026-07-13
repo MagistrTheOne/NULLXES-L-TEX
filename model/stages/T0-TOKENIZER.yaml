@@ -1,0 +1,13 @@
+apiVersion: nullxes.model-stage/v2
+kind: TokenizerStage
+metadata: {id: T0-TOKENIZER, status: planned, execution_state: not_run}
+spec:
+  lane: target
+  parent_weights: none
+  objective: "Train and freeze the independent LÆTEX tokenizer before any model initialization."
+  input: dataset://latex-e01/tokenizer-sample/PENDING
+  requirements: [normalization_frozen, byte_fallback, special_tokens_frozen, code_log_schema_compression_report]
+  contamination_policy: "Evaluation and private tenant data forbidden."
+  runtime: {accelerator: NVIDIA_H200, local_training: forbidden}
+  gates: [unk_rate_within_frozen_limit, compression_targets_pass, roundtrip_pass, tokenizer_hash_signed]
+  output: artifact://latex-e01/T0-TOKENIZER/PENDING

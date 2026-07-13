@@ -1,0 +1,19 @@
+schema: laetex.runpod.profile/v3
+name: long-context256k
+enabled: true
+stage: LC256K
+classification: EXPERIMENT_REQUIRED
+purpose: "Staged 262144-token continuation and qualification."
+platform: {provider: RunPod, cloud: Secure Cloud, accelerator: NVIDIA H200, local_model_workloads: forbidden}
+compute: {minimum: {world_size: 512, nodes: 64}, recommended: {world_size: 1024, nodes: 128}, precision: BF16}
+parallelism:
+  minimum: {TP: 8, PP: 2, EP: 4, CP: 8, DP: 1}
+  recommended: {TP: 8, PP: 2, EP: 8, CP: 8, DP: 1}
+  rule: "world_size=TP*PP*EP*CP*DP"
+  note: "PP2 requires ARCH-FREEZE layer divisibility and pipeline-memory proof."
+network: {required: "provider-attested NVLink/NVSwitch and InfiniBand", acceptance: "all-to-all, CP collectives, sequence-loss and failure-recovery tests"}
+storage: {working: "RunPod Network Volume plus ephemeral NVMe cache", durable_source_of_truth: "external encrypted versioned object store"}
+checkpoint: {input: "accepted LC128K full state", output: "LC256K BF16 full state", cadence: "measured time/token interval", cold_restore_required: true}
+wall_clock: {classification: ENGINEERING_HYPOTHESIS, estimate: "TBD by measured 256K tokens/s"}
+gate: "256K state tracking, short-context noninferiority, memory/latency and restore pass"
+economic_gate: "Stop if 256K adds no verified-task gain over 128K plus structured state."

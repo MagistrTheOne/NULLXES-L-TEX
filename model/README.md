@@ -1,79 +1,56 @@
-# Lineage модели LÆTEX E-01
+# Lineage независимой LÆTEX E-01
 
-**[VERIFIED FACT]** Этот каталог — канонический документационный manifest прямого
-наследования LÆTEX E-01 от `Qwen/Qwen3-Coder-480B-A35B-Instruct`.
+**[VERIFIED FACT]** Каноническая E-01 в этом каталоге — новая decoder-only MoE
+foundation, обучаемая с нулевой инициализации собственных weights и собственного
+tokenizer. Ни один внешний checkpoint не является родителем target lane.
 
-**[VERIFIED FACT]** Файлы каталога не создают инфраструктуру, не содержат
-credentials и не утверждают, что training, merge, evaluation или release run
-уже выполнялся.
+**[VERIFIED FACT]** Все manifests имеют `status: planned`,
+`execution_state: not_run`: они не создают RunPod-инфраструктуру и не заявляют
+выполненное обучение.
 
-## Канонические файлы
+## Две непересекающиеся линии
 
-- `latex-e01-480a35.yaml` — identity модели, проверяемая upstream-архитектура,
-  policy адаптации, context/runtime constraints и полный lineage.
-- `stages/S0-UPSTREAM.yaml` — закрепление и верификация upstream как `S0`.
-- `stages/S1-IDENTITY.yaml` — обучение и сохранение identity/tool adapter `A1`.
-- `stages/M1-IDENTITY-MERGED.yaml` — BF16 merge только `A1` в `S0`.
-- `stages/S2-ACTION-SFT.yaml` — обучение и сохранение Action SFT adapter `A2`.
-- `stages/M2-ACTION-MERGED.yaml` — BF16 merge только `A2` в `M1`.
-- `stages/S3-PREFERENCE.yaml` — обучение и сохранение preference adapter `A3`.
-- `stages/M3-PREFERENCE-MERGED.yaml` — BF16 merge только `A3` в `M2`.
-- `stages/S4-GRPO.yaml` — обучение и сохранение GRPO adapter `A4` от `M3`.
-- `stages/M4-RELEASE.yaml` — BF16 merge только `A4` в `M3`.
-- `stages/FP8-SERVING-DERIVATIVE.yaml` — отдельный FP8 conversion/export и parity только от immutable BF16 `M4`.
-- `../infra/runpod/profiles/fp8-export.yaml` — отдельный FP8 serving derivative
-  только от прошедшего gates BF16 `M4`.
+- **Proxy lane:** `PX1-1B → PX2-7B → PX3-30B → ARCH-FREEZE`. Proxy checkpoints
+  проверяют tokenizer, data loader, initialization, scaling, routing, kernels,
+  checkpoint/resume и quality-per-compute.
+- **Target lane:** `T0-TOKENIZER → D0-CORPUS → I0-INIT → P0-PRETRAIN-8K →
+  LC32K → LC128K → LC256K → SFT → PREF → GRPO → R1-BF16 → FP8`.
 
-## Lineage
+**[VERIFIED FACT]** Proxy weights никогда не копируются, не расширяются и не
+используются как target parent. `ARCH-FREEZE` переносит только подписанную
+спецификацию и измеренные hyperparameter/scaling decisions. `I0-INIT` создаёт
+target weights заново из зафиксированного seed и initialization contract.
 
-**[VERIFIED FACT]** Обязательная последовательность train → verify → BF16 merge →
-следующий train:
+## Architecture freeze
 
-`S0 -> A1 -> M1 -> A2 -> M2 -> A3 -> M3 -> A4 -> M4 -> FP8 serving derivative`
+**[ENGINEERING HYPOTHESIS]** Target topology исследует 144 routed experts;
+`EP=16` даёт ровно 9 routed experts на rank. Точные layer count, hidden size,
+shared expert, active/total parameter counts, attention schedule, optimizer,
+token budget и μP transfer считаются незакреплёнными до `ARCH-FREEZE`.
 
-**[VERIFIED FACT]** Training-стадии создают retained adapters `A1..A4`.
-Merge-стадии не изменяют родителей: каждый merge пишет новый immutable BF16
-artifact с новым SHA-256. После каждого merge следующий training-stage начинает
-работу с новым optimizer/scheduler state.
+**[RISK]** Одновременная независимая декомпозиция `TP8×PP8×EP16` уже требует
+world size 1024 при `CP=DP=1`. Поэтому 512 H200 — минимальный campaign envelope,
+но не доказательство, что exact target topology помещается на 512. Профили
+фиксируют валидные phase-specific fallback-разложения; подмена арифметики
+запрещена.
 
-## Обязательное закрепление
+## Execution invariants
 
-До любого training:
+- **[VERIFIED FACT]** Только NVIDIA H200; target planning: 512 minimum, 1024
+  recommended. Локально разрешён только control plane без weights/datasets/train.
+- **[RISK]** До reservation обязательны provider-attested NVLink/NVSwitch внутри
+  HGX-узла, InfiniBand между узлами и acceptance NCCL/all-to-all/checkpoint.
+- **[VERIFIED FACT]** External encrypted versioned object store — source of truth.
+  RunPod Network Volume и node scratch — только working/cache layers.
+- **[ENGINEERING HYPOTHESIS]** Любые wall-clock, throughput, MFU, token-budget и
+  cost значения остаются гипотезами до proxy и target pilots.
+- **[VERIFIED FACT]** BF16 `R1` — release master. FP8 — inference-only derivative,
+  никогда не training parent.
 
-1. **[VERIFIED FACT]** Использовать только закреплённую Hugging Face revision
-   `9d90cf8fca1bf7b7acca42d3fc9ae694a2194069`, проверенную через official API
-   2026-07-13. Commit SHA не является SHA-256 hash весов.
-2. **[EXPERIMENT REQUIRED]** На RunPod создать manifest всех обязательных
-   файлов, размеров и SHA-256, включая все 241 weight shards, config, tokenizer
-   и chat template; до этого training заблокирован.
-3. **[EXPERIMENT REQUIRED]** На RunPod архивировать и хешировать upstream
-   Apache-2.0 license и notices для exact revision.
-4. **[VERIFIED FACT]** Получить точные имена attention projection modules из
-   закреплённого `state_dict`, не выводить их из mutable library class.
-5. **[VERIFIED FACT]** Записать tokenizer/chat-template hashes без изменения
-   tokenizer.
+## Historical derivative branch
 
-**[VERIFIED FACT]** Placeholders `sha256:...`, `artifact://...` и
-`run://NOT_RUN/...` заменяются registry. Стадия остаётся `planned`, пока inputs
-не закреплены, и не получает release status без machine-readable evidence всех
-gates.
-
-## Инварианты precision и execution
-
-- **[VERIFIED FACT]** BF16 — master и единственная разрешённая merge precision.
-- **[VERIFIED FACT]** Merge поверх FP8, INT8, INT4 и иных quantized weights запрещён.
-- **[VERIFIED FACT]** Каждый source adapter сохраняется после merge.
-- **[RISK]** Multi-node H200 topology считается допустимой только после provider
-  attestation NVLink/NVSwitch внутри узла и InfiniBand между узлами; наличие
-  конкретного allocation не заявляется.
-- **[VERIFIED FACT]** Локальное выполнение весов, training, fine-tuning, merge и
-  inference запрещено.
-- **[EXPERIMENT REQUIRED]** FP8 создаётся только от gate-passing immutable BF16
-  `M4` и обязан пройти parity против этого parent.
-
-## Context policy
-
-**[ENGINEERING HYPOTHESIS]** Первый training/evaluation envelope — 32 768
-tokens. Расширение до 65 536 — отдельный gate. **[EXPERIMENT REQUIRED]** Native
-262 144-token window остаётся evaluation-only до прохождения long-context
-quality, safety, memory и latency gates.
+Предыдущие derivative stage contracts выведены из canonical namespace и
+инвентаризированы в
+[`historical/qwen-derivative-e01/MANIFEST.yaml`](historical/qwen-derivative-e01/MANIFEST.yaml).
+Файл `latex-e01-480a35.yaml` не редактируется этим change set и не является
+parent/source-of-truth для нового target lane.

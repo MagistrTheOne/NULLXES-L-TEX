@@ -31,27 +31,21 @@ NULLXES
 
 # БАЗОВОЕ РЕШЕНИЕ
 
-**VERIFIED FACT —** Прямой foundation checkpoint E-01: `Qwen/Qwen3-Coder-480B-A35B-Instruct`.
+**VERIFIED FACT —** ADR-0007 принимает independent from-scratch E-01 без external weight parent, checkpoint initialization или inherited tokenizer.
 
-**VERIFIED FACT —** Официальные model card/config фиксируют: causal LM; training stage `Pretraining & Post-training`; 480B total / 35B activated; 62 layers; hidden size 6144; GQA 96Q/8KV; head dimension 128; 160 routed experts; Top-8; отсутствие shared expert (`shared_expert_intermediate_size=0`); expert intermediate size 2560; vocabulary 151 936; native context 262 144; BF16; Apache-2.0.
+**ENGINEERING HYPOTHESIS —** Canonical target: 64 layers, `d_model=8192`, GQA `64Q/8KV`, head dimension 128, hybrid attention `7 local : 1 global`, local window 16 384, 144 routed experts + 1 shared expert, Top-6, expert `d_ff=2048`, vocabulary 128K, context target 262 144 и BF16 master.
 
-**VERIFIED FACT —** Отдельно выпущенный официальный `Qwen3-Coder-480B-A35B-Base` в проверенных источниках не идентифицирован. Поэтому upstream E-01 — Instruct, а не Base.
+**EXPERIMENT REQUIRED —** `~478.9B total / ~34.4B active` — provisional design estimates pending executable parameter-count proxy, MoE placement and exact shared/embedding accounting.
 
-**ENGINEERING HYPOTHESIS —** Broad CPT для E-01 исключён по умолчанию: продолжительное language-model обучение поверх Instruct создаёт риск alignment loss, деградации tool calling и instruction following.
+**VERIFIED FACT —** Canonical lineage: corpus/tokenizer provenance → random initialization → proxies → signed scale gate → full pretraining → BF16 base → SFT → preference → executable RL → BF16 master → parity-gated serving derivative.
 
-**EXPERIMENT REQUIRED —** Узкий domain-adaptive CPT допустим только как изолированная ablation после frozen S0 baseline и только при non-inferiority по coding, identity, tool grammar и governance.
+**VERIFIED FACT —** Qwen не является weight parent, tokenizer source или runtime dependency. Он допустим только как benchmark и optional offline synthetic teacher за firewall ADR-0009.
 
-**ENGINEERING HYPOTHESIS —** Канонический lineage: `S0 → A1 → M1 → A2 → M2 → A3 → M3 → A4 → M4 → FP8`; `A1..A4` — retained adapters, `M1..M4` — отдельные immutable BF16 merges, FP8 — только serving derivative после parity.
-
-**ENGINEERING HYPOTHESIS —** Internal MoE router и experts сначала заморожены. Их selective adaptation не входит в default recipe и требует отдельного доказательства adapter ceiling.
-
-**VERIFIED FACT —** `Qwen/Qwen3-Coder-Next-Base` 80B/3B не является foundation E-01. Он сохраняется только как исторически отвергнутая или альтернативная research branch.
-
-**RISK —** Прямой 480B/35B foundation резко повышает H200 memory, communication, checkpoint и serving cost. Экономика E-01 не считается доказанной до измерения cost per verified task.
+**RISK —** Независимый 478.9B-class pretraining имеет критические data, convergence, H200 communication, recovery, schedule и economic risks; full-scale run запрещён до proxy/data/systems/budget gates.
 
 # КЛЮЧЕВОЙ ПРИНЦИП
 
-LÆTEX не должен быть «Qwen с новым system prompt».
+LÆTEX не должен быть rebrand или derivative внешнего checkpoint.
 
 Нужно построить производную модель с собственной:
 - поведенческой идентичностью;
@@ -65,17 +59,16 @@ LÆTEX не должен быть «Qwen с новым system prompt».
 - runtime policy layer.
 
 Нужно сохранить юридическую честность:
-LÆTEX v1 является proprietary post-trained enterprise action model, built from open-weight foundations.
-Нельзя заявлять, что он pretrained from zero, если это не так.
-Но пользовательский интерфейс, API, prompt behavior, documentation и output identity должны быть полностью LÆTEX, без упоминаний Qwen.
+**VERIFIED FACT —** E-01 заявляется from scratch только если artifact graph подтверждает собственный tokenizer, random initialization, pretraining и post-training без external weight parent.
+**RISK —** Architectural ideas, external teacher data и benchmark references должны иметь provenance; from-scratch weights не означают отсутствие third-party data/license obligations.
 
-# ЧТО ЗНАЧИТ «СНЕСТИ ИДЕНТИЧНОСТЬ QWEN»
+# ЧТО ЗНАЧИТ НЕЗАВИСИМАЯ IDENTITY
 
 Нужно разработать технический план, а не лозунг.
 
 Раздели:
-A. User-facing identity removal:
-- модель никогда не называет себя Qwen;
+A. User-facing identity:
+- модель идентифицирует себя как LÆTEX;
 - собственное имя: LÆTEX;
 - собственные role contracts;
 - собственный tool schema;
@@ -83,24 +76,24 @@ A. User-facing identity removal:
 - собственный response format;
 - identity adversarial evals.
 
-B. Behavioral overwrite:
-- **ENGINEERING HYPOTHESIS —** identity/tool LoRA и enterprise Action SFT LoRA с проверяемыми BF16 merges;
+B. Behavioral post-training:
+- **ENGINEERING HYPOTHESIS —** enterprise Action SFT;
 - **ENGINEERING HYPOTHESIS —** preference optimization;
 - **ENGINEERING HYPOTHESIS —** GRPO / RL in executable environments;
-- negative examples, где модель ошибочно ссылается на Qwen или ведёт себя как generic assistant;
-- **EXPERIMENT REQUIRED —** controlled selective/full-parameter tuning только после доказанного adapter ceiling;
-- **RISK —** broad CPT исключён по умолчанию из-за риска потери upstream alignment.
+- negative examples, где модель ведёт себя как generic assistant или присваивает identity внешнего teacher;
+- **EXPERIMENT REQUIRED —** behavior stages сравниваются с BF16 base по coding, tool, governance и identity gates;
+- **RISK —** post-training может вызвать catastrophic forgetting pretraining capabilities.
 
-C. What cannot honestly be erased:
-- архитектурное происхождение;
-- наследуемые representations;
-- legal notices и Apache obligations;
-- факт происхождения модели в internal model card.
+C. What must remain disclosed:
+- training-data provenance и licenses;
+- external benchmark/teacher usage;
+- architectural influences;
+- synthetic-data lineage.
 
 Отдельно объясни:
-1. Почему менять tokenizer в LÆTEX v1 скорее вредно, чем полезно.
-2. Когда custom tokenizer имеет смысл в будущей независимой модели.
-3. Как проверить, что identity overwrite реально сработал.
+1. Как обучить и заморозить custom 128K tokenizer до pretraining.
+2. Как проверить compression/code/multilingual quality и special-token contract.
+3. Как проверить, что independent identity реально сформирована.
 4. Какие есть риски catastrophic forgetting и потери coding capability.
 
 # LÆTEX ARCHITECTURE
@@ -108,11 +101,11 @@ C. What cannot honestly be erased:
 Спроектируй пять planes:
 
 1. FOUNDATION PLANE
-- **VERIFIED FACT —** `Qwen/Qwen3-Coder-480B-A35B-Instruct` как direct E-01 foundation.
-- **VERIFIED FACT —** Existing internal MoE: 160 routed experts, Top-8, no shared expert.
-- Какие модули допустимо full-tune, какие лучше adapter-tune.
-- **ENGINEERING HYPOTHESIS —** Router и experts заморожены сначала; adaptation только через отдельный gate.
-- Как сохранить качество coding после enterprise adaptation.
+- **VERIFIED FACT —** Independent random initialization, custom tokenizer и scratch pretraining.
+- **ENGINEERING HYPOTHESIS —** Target internal MoE: 144 routed experts + 1 shared expert, Top-6.
+- Как валидировать architecture на proxy перед scale-up.
+- **EXPERIMENT REQUIRED —** Parameter count, routing и scale transfer должны пройти frozen gates.
+- Как сохранить качество coding после enterprise post-training.
 
 2. LÆTEX ADAPTER-MOE PLANE
 Предложи 8 domain expert packs:
@@ -262,7 +255,7 @@ policy violations, refusals, escalations, destructive action prevention, securit
 Сделай architecture tenant isolation + explicit opt-in learning.
 
 Предложи реалистичные initial targets:
-- CPT token volume;
+- pretraining token volume;
 - SFT verified examples;
 - executable sandbox trajectories;
 - failure/recovery trajectories;
@@ -272,12 +265,12 @@ policy violations, refusals, escalations, destructive action prevention, securit
 
 Нужен конкретный порядок:
 
-Phase 0 — evaluation before training
-Phase 1 — identity/tool LoRA → verified BF16 merge M1
-Phase 2 — enterprise Action SFT LoRA → merge M2
-Phase 3 — preference optimization
-Phase 4 — GRPO / executable RL → BF16 master M4
-Phase 5 — FP8 serving derivative parity; router/World Model experiments отдельно
+Phase 0 — evaluation/data/license freeze
+Phase 1 — custom tokenizer and architecture proxies
+Phase 2 — H200 systems/scale-transfer gate
+Phase 3 — full scratch pretraining → BF16 base
+Phase 4 — enterprise Action SFT and preference optimization
+Phase 5 — executable RL → BF16 master; serving derivative parity separately
 Phase 6 — red team and release gates
 
 Для каждой фазы укажи:
@@ -291,14 +284,15 @@ Phase 6 — red team and release gates
 - expected artifact.
 
 Отдельно сравни:
-- LoRA / QLoRA;
+- full scratch pretraining;
+- LoRA / QLoRA for post-training ablations;
 - full fine-tuning;
 - selective MoE tuning;
 - adapter merge;
 - distillation;
 - teacher-student training.
 
-Дай рекомендацию, что делать в LÆTEX E-01, а что отложить в LÆTEX-2.
+Дай рекомендацию, что делать в independent LÆTEX E-01, а что отложить до post-E-01 research.
 
 # SPEED AND QUALITY STRATEGY
 
@@ -362,21 +356,23 @@ Verified Enterprise Task Completion Rate.
 
 Не используй один красивый benchmark screenshot как доказательство качества.
 
-# INDEPENDENT LÆTEX-2
+# INDEPENDENT E-01
 
-После успеха E-01 предложи независимую модель как research target, а не маркетинговое обещание.
+**VERIFIED FACT —** Независимая модель является текущим accepted E-01, а не будущим LÆTEX-2.
 
 Стартовая гипотеза:
 - 64 blocks
-- hidden size 6144
-- hybrid attention for 256K+
-- GQA 48Q / 8KV
-- 64 routed experts + 1 shared expert
-- Top-2 routing
-- target around 160B total / 14B active
+- hidden size 8192
+- hybrid attention 7 local + 1 global
+- local window 16 384; context target 262 144
+- GQA 64Q / 8KV; head dimension 128
+- 144 routed experts + 1 shared expert
+- Top-6 routing; expert dff 2048
+- vocabulary 128K; BF16 master
+- target ~478.9B total / ~34.4B active pending proxy validation
 
-Проверь математически, насколько эта конфигурация реалистична.
-Предложи альтернативу, если она плохо масштабируется.
+Проверь математически и executable proxy, насколько эта конфигурация реалистична.
+Предложи пересмотр только через ADR, если она плохо масштабируется.
 Отдельно оцени:
 - required training tokens;
 - distributed training stack;
@@ -402,7 +398,7 @@ Verified Enterprise Task Completion Rate.
 10. Speed / cost / quality strategy
 11. LÆTEX-Bench
 12. 90-day roadmap
-13. LÆTEX-2 research target
+13. Independent E-01 validation target
 14. Top 10 risks with mitigations
 15. What not to build yet
 16. Exact first seven engineering actions for this week
@@ -411,15 +407,18 @@ Verified Enterprise Task Completion Rate.
 “LÆTEX wins if …”
  # CANONICAL CHECKPOINT SOURCES
 
-Primary live backbone — source of truth:
+Canonical source of truth:
+`docs/adr/0007-independent-from-scratch-e01.md`,
+`docs/adr/0008-custom-tokenizer.md`,
+`docs/adr/0009-qwen-reference-teacher-firewall.md`,
+`docs/adr/0010-scratch-pretrain-post-train-lineage.md`.
+
+External benchmark / optional offline teacher reference only:
 https://huggingface.co/Qwen/Qwen3-Coder-480B-A35B-Instruct
 
-Historical rejected/alternative branch only:
-https://huggingface.co/Qwen/Qwen3-Coder-Next-Base
-
-Перед любыми выводами проверь актуальные model cards по этим двум URL.
-Не выдумывай параметры, лицензию, hardware requirements или benchmark claims.
-Если сведения в текущем описании проекта расходятся с model card, приоритет у model card.
+Перед teacher/benchmark run проверь актуальную model card, exact revision и license.
+Не выдумывай параметры, license, hardware requirements или benchmark claims.
+External model card никогда не переопределяет canonical E-01 architecture и не создаёт weight parent.
 
 # NON-NEGOTIABLE COMPUTE CONSTRAINT
 

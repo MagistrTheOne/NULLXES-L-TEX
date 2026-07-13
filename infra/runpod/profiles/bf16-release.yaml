@@ -1,0 +1,18 @@
+schema: laetex.runpod.profile/v3
+name: bf16-release
+enabled: true
+stage: R1-BF16
+classification: EXPERIMENT_REQUIRED
+purpose: "Freeze, reload and qualify the immutable BF16 release master."
+platform: {provider: RunPod, cloud: Secure Cloud, accelerator: NVIDIA H200, local_model_workloads: forbidden}
+compute: {minimum: {world_size: 512, nodes: 64}, recommended: {world_size: 1024, nodes: 128}, precision: BF16}
+parallelism:
+  minimum: {TP: 8, PP: 8, EP: 8, CP: 1, DP: 1}
+  recommended: {TP: 8, PP: 8, EP: 16, CP: 1, DP: 1}
+  rule: "world_size=TP*PP*EP*CP*DP"
+network: {required: "provider-attested NVLink/NVSwitch and InfiniBand", acceptance: "identical bundle hash, load, all-to-all and deterministic grader replay"}
+storage: {working: "RunPod Network Volume", durable_source_of_truth: "external encrypted immutable object registry"}
+checkpoint: {input: "immutable GRPO BF16 candidate", output: "signed R1 BF16 release or rejection", cadence: "evidence ledger every 15 minutes", training: disabled}
+wall_clock: {classification: ENGINEERING_HYPOTHESIS, estimate: "TBD by frozen suite and measured inference throughput"}
+gate: "two clean runs; critical security=0; replay mismatch=0; audit/lineage=100%"
+economic_gate: "Full qualification only after integrity smoke and immutable graders."

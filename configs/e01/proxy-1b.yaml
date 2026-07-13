@@ -1,0 +1,43 @@
+api_version: nullxes.laetex/v1
+kind: ModelConfig
+metadata:
+  id: latex-e01-proxy-1b
+  scale: proxy-1b
+  status: research-only
+  research_hypothesis: true
+  description: Approximate 1B scaling hypothesis; independently initialized and never a weight parent.
+provenance:
+  initialization: independent-random-init
+  weight_parent: null
+  architecture_parent: null
+architecture:
+  vocab_size: 32000
+  num_layers: 16
+  hidden_size: 1024
+  attention:
+    query_heads: 16
+    key_value_heads: 4
+    head_dim: 64
+    qkv_bias: false
+    qk_norm: true
+  attention_pattern:
+    local_layers: 3
+    global_layers: 1
+    local_window: 4096
+    max_context: 32768
+  moe:
+    routed_experts: 32
+    shared_experts: 1
+    experts_per_token: 2
+    expert_intermediate_size: 512
+    activation: swiglu
+    router:
+      score_function: sigmoid
+      normalize_scores: true
+      load_balancing: aux-loss-free
+  normalization: {type: rmsnorm, epsilon: 1.0e-6}
+  position: {type: rope, rope_theta: 1000000}
+  tie_word_embeddings: false
+  parameter_dtype: bfloat16
+parallelism:
+  expert_parallel_size: 16

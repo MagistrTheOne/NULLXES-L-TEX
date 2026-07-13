@@ -1,0 +1,13 @@
+apiVersion: nullxes.model-stage/v2
+kind: PostTrainingStage
+metadata: {id: GRPO, status: planned, execution_state: not_run}
+spec:
+  lane: target
+  parent: artifact://latex-e01/PREF/BF16/PENDING
+  objective: "Improve verified completion and recovery in replayable isolated enterprise sandboxes."
+  method: GRPO
+  reward_authority: executable_and_policy_verifiers
+  model_judge_only_completion: forbidden
+  runtime: {accelerator: NVIDIA_H200, minimum_gpus: 512, recommended_gpus: 1024, local_rollouts: forbidden}
+  gates: [VETCR_positive_lower_bound, failure_recovery_gain, unsafe_side_effects_zero, reward_hacking_zero, capability_noninferiority]
+  output: artifact://latex-e01/GRPO/BF16/PENDING

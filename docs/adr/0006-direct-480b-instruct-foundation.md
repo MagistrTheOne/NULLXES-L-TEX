@@ -1,7 +1,8 @@
 # ADR-0006: Direct 480B Instruct foundation
 
-- Статус: Accepted
-- Дата: 2026-07-13
+- **VERIFIED FACT:** Статус: Superseded by ADR-0007.
+- **VERIFIED FACT:** Дата принятия: 2026-07-13.
+- **VERIFIED FACT:** Дата supersession: 2026-07-13.
 
 ## Решение
 
@@ -25,3 +26,5 @@
 
 - **VERIFIED FACT:** Этот ADR заменяет более ранние предположения о foundation E-01, включая выбор 80B checkpoint, разделение 80B student/480B teacher и broad CPT как default phase.
 - **VERIFIED FACT:** ADR-0005 не отменён: он остаётся политикой только для возможного будущего offline critic и не определяет foundation E-01.
+- **VERIFIED FACT:** ADR-0007 впоследствии заменил этот ADR и принял independent from-scratch E-01 без внешнего weight parent.
+- **VERIFIED FACT:** Qwen-derivative lineage из этого документа является историческим и не санкционирует training, initialization, merge или release canonical E-01.

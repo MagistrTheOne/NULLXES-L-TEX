@@ -1,0 +1,18 @@
+schema: laetex.runpod.profile/v3
+name: proxy1
+enabled: true
+stage: PX1-1B
+classification: EXPERIMENT_REQUIRED
+purpose: "From-scratch 1B systems and scaling proxy; never a target parent."
+platform: {provider: RunPod, cloud: Secure Cloud, accelerator: NVIDIA H200, local_model_workloads: forbidden}
+compute: {minimum: {world_size: 8, nodes: 1}, recommended: {world_size: 16, nodes: 2}, precision: BF16}
+parallelism:
+  minimum: {TP: 1, PP: 1, EP: 1, CP: 1, DP: 8}
+  recommended: {TP: 2, PP: 1, EP: 1, CP: 1, DP: 8}
+  rule: "world_size=TP*PP*EP*CP*DP"
+network: {required: "NVLink/NVSwitch; attested InfiniBand if multi-node", acceptance: "NCCL, loss parity and resume"}
+storage: {working: "RunPod Network Volume", durable_source_of_truth: "external encrypted versioned object store"}
+checkpoint: {input: "T0/D0 hashes and new seed", output: "proxy-only weights/optimizer/evidence", cadence: "every 2 hours or frozen token interval", target_parent: forbidden}
+wall_clock: {classification: ENGINEERING_HYPOTHESIS, estimate: "TBD by measured tokens/s"}
+gate: "exact resume, stable loss/gradients and complete token accounting"
+economic_gate: "Scale to PX2 only if PX1 invalidates no data/optimizer/checkpoint invariant."

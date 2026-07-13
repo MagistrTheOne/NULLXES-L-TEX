@@ -1,0 +1,123 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://nullxes.dev/schemas/laetex-model-config.v1.json",
+  "title": "LÆTEX independent model configuration",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["api_version", "kind", "metadata", "provenance", "architecture", "parallelism"],
+  "properties": {
+    "api_version": {"const": "nullxes.laetex/v1"},
+    "kind": {"const": "ModelConfig"},
+    "metadata": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "scale", "status", "research_hypothesis"],
+      "properties": {
+        "id": {"type": "string", "pattern": "^[a-z0-9][a-z0-9-]*$"},
+        "scale": {"enum": ["tiny-cpu", "proxy-1b", "proxy-7b", "proxy-30b", "full"]},
+        "status": {"enum": ["research-only", "planned"]},
+        "research_hypothesis": {"const": true},
+        "description": {"type": "string", "minLength": 1}
+      }
+    },
+    "provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["initialization", "weight_parent", "architecture_parent"],
+      "properties": {
+        "initialization": {"const": "independent-random-init"},
+        "weight_parent": {"type": "null"},
+        "architecture_parent": {"type": "null"}
+      }
+    },
+    "architecture": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "vocab_size", "num_layers", "hidden_size", "attention", "attention_pattern",
+        "moe", "normalization", "position", "tie_word_embeddings", "parameter_dtype"
+      ],
+      "properties": {
+        "vocab_size": {"type": "integer", "minimum": 256},
+        "num_layers": {"type": "integer", "minimum": 1},
+        "hidden_size": {"type": "integer", "minimum": 64},
+        "attention": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["query_heads", "key_value_heads", "head_dim", "qkv_bias", "qk_norm"],
+          "properties": {
+            "query_heads": {"type": "integer", "minimum": 1},
+            "key_value_heads": {"type": "integer", "minimum": 1},
+            "head_dim": {"type": "integer", "minimum": 8},
+            "qkv_bias": {"type": "boolean"},
+            "qk_norm": {"type": "boolean"}
+          }
+        },
+        "attention_pattern": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["local_layers", "global_layers", "local_window", "max_context"],
+          "properties": {
+            "local_layers": {"type": "integer", "minimum": 1},
+            "global_layers": {"type": "integer", "minimum": 1},
+            "local_window": {"type": "integer", "minimum": 128},
+            "max_context": {"type": "integer", "minimum": 128}
+          }
+        },
+        "moe": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "routed_experts", "shared_experts", "experts_per_token",
+            "expert_intermediate_size", "activation", "router"
+          ],
+          "properties": {
+            "routed_experts": {"type": "integer", "minimum": 1},
+            "shared_experts": {"type": "integer", "minimum": 0},
+            "experts_per_token": {"type": "integer", "minimum": 1},
+            "expert_intermediate_size": {"type": "integer", "minimum": 16},
+            "activation": {"const": "swiglu"},
+            "router": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["score_function", "normalize_scores", "load_balancing"],
+              "properties": {
+                "score_function": {"const": "sigmoid"},
+                "normalize_scores": {"const": true},
+                "load_balancing": {"const": "aux-loss-free"}
+              }
+            }
+          }
+        },
+        "normalization": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["type", "epsilon"],
+          "properties": {
+            "type": {"const": "rmsnorm"},
+            "epsilon": {"type": "number", "exclusiveMinimum": 0}
+          }
+        },
+        "position": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["type", "rope_theta"],
+          "properties": {
+            "type": {"const": "rope"},
+            "rope_theta": {"type": "number", "exclusiveMinimum": 0}
+          }
+        },
+        "tie_word_embeddings": {"type": "boolean"},
+        "parameter_dtype": {"const": "bfloat16"}
+      }
+    },
+    "parallelism": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["expert_parallel_size"],
+      "properties": {
+        "expert_parallel_size": {"type": "integer", "minimum": 1}
+      }
+    }
+  }
+}

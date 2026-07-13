@@ -1,0 +1,15 @@
+apiVersion: nullxes.model-stage/v2
+kind: InitializationStage
+metadata: {id: I0-INIT, status: planned, execution_state: not_run}
+spec:
+  lane: target
+  dependencies: [ARCH-FREEZE, T0-TOKENIZER, D0-CORPUS]
+  parent_weights: none
+  proxy_weights_allowed: false
+  objective: "Instantiate target weights from scratch under signed architecture, seed and initialization contracts."
+  architecture_manifest: manifest://latex-e01/ARCH-FREEZE/PENDING
+  tokenizer: artifact://latex-e01/T0-TOKENIZER/PENDING
+  initialization: {method: PENDING_ARCH_FREEZE, seed: PENDING_SIGNED_SEED}
+  runtime: {accelerator: NVIDIA_H200, local_execution: forbidden}
+  gates: [parameter_count_exact, tensor_shapes_exact, deterministic_reinit_pass, no_external_or_proxy_weight_parent]
+  output: artifact://latex-e01/I0-INIT/BF16/PENDING

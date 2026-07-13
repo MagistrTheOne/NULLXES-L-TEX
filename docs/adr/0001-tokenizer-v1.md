@@ -1,7 +1,8 @@
-# ADR-0001: сохранить upstream tokenizer в E-01
+# ADR-0001: сохранить upstream tokenizer в derivative E-01
 
-- **VERIFIED FACT:** Статус: Accepted.
-- **VERIFIED FACT:** Область: E-01.
+- **VERIFIED FACT:** Статус: Superseded by ADR-0008.
+- **VERIFIED FACT:** Область: архивное решение для superseded Qwen-derivative E-01.
+- **VERIFIED FACT:** Дата supersession: 2026-07-13.
 
 ## Контекст
 
@@ -27,3 +28,8 @@
 
 - **EXPERIMENT REQUIRED:** Custom tokenizer допустим для независимого LÆTEX-2 до pretraining, если corpus study показывает устойчивый compression/quality gain и migration cost отсутствует.
 - **RISK:** Добавление tokens после E-01 release требует нового model lineage и полного regression cycle; silent tokenizer mutation запрещена.
+
+## Supersession
+
+- **VERIFIED FACT:** ADR-0008 заменяет это решение, потому что принятый ADR-0007 определяет E-01 как independent from-scratch model без upstream tokenizer.
+- **VERIFIED FACT:** Содержимое выше сохраняется как историческая запись и не определяет canonical tokenizer E-01.

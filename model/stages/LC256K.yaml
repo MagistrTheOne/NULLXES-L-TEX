@@ -1,0 +1,12 @@
+apiVersion: nullxes.model-stage/v2
+kind: LongContextStage
+metadata: {id: LC256K, status: planned, execution_state: not_run}
+spec:
+  lane: target
+  parent: artifact://latex-e01/LC128K/BF16/PENDING
+  context_tokens: 262144
+  objective: "Qualify and train the final 256K target context without sacrificing shorter-context capability."
+  trainable_scope: all_target_parameters
+  runtime: {accelerator: NVIDIA_H200, minimum_gpus: 512, recommended_gpus: 1024, local_training: forbidden}
+  gates: [LC128K_accepted, 256K_retrieval_and_state_tracking_pass, short_context_noninferiority, memory_latency_gate, resume_pass]
+  output: artifact://latex-e01/LC256K/BF16/PENDING

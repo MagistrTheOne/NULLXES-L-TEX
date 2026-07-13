@@ -1,62 +1,42 @@
 # NULLXES LÆTEX
 
-> Статус: source-of-truth scaffold  
-> Дата фиксации источников: 2026-07-13
+> **VERIFIED FACT —** Статус: source-of-truth scaffold.
+> **VERIFIED FACT —** Дата решения: 2026-07-13.
 
 **VERIFIED FACT —** Компания: NULLXES. Developer / CEO: [@MagistrTheOne](https://github.com/MagistrTheOne). Контакты: [ceo@nullxes.com](mailto:ceo@nullxes.com), <https://nullxes.com>.
 
-**ENGINEERING HYPOTHESIS —** LÆTEX — Enterprise Action Model: производная enterprise-модель, которая получает структурированное состояние организации, действует через контролируемые инструменты и возвращает проверяемый результат — изменение, тесты, evidence, риски и audit trail. В E-01 model workloads разворачиваются только в RunPod Secure Cloud на H200; on-prem/VPC клиента остаётся будущей product target и не заявляется как реализованный deployment.
+**ENGINEERING HYPOTHESIS —** LÆTEX — независимо проектируемая Enterprise Action Model, которая получает структурированное состояние организации, действует через контролируемые tools и возвращает проверяемый результат: diff/artifact, tests, evidence, risks и audit trail.
 
-**VERIFIED FACT —** Прямой foundation E-01 — [`Qwen/Qwen3-Coder-480B-A35B-Instruct`](https://huggingface.co/Qwen/Qwen3-Coder-480B-A35B-Instruct): causal LM, прошедшая pretraining и post-training, 480B параметров всего / 35B активных, 62 слоя, hidden size 6144, GQA 96Q/8KV, head dimension 128, 160 routed experts, Top-8, без shared expert (`shared_expert_intermediate_size=0`), expert intermediate size 2560, vocabulary 151 936, native context 262 144 и BF16.
+**VERIFIED FACT —** ADR-0007 принимает независимый from-scratch E-01. Канонический E-01 не имеет внешнего weight parent, не загружает чужой checkpoint как initialization и проходит собственные tokenizer training, pretraining и post-training.
 
-**VERIFIED FACT —** На дату проверки в официальных источниках не идентифицирован отдельно выпущенный `Qwen3-Coder-480B-A35B-Base`; upstream E-01 поэтому является Instruct checkpoint. Official Hugging Face API evidence, проверенный 2026-07-13, закрепляет immutable revision `9d90cf8fca1bf7b7acca42d3fc9ae694a2194069`, safetensors BF16 parameter count `480154875392`, `usedStorage=960313541352`, наличие `LICENSE` в file list и metadata `apache-2.0`.
+**ENGINEERING HYPOTHESIS —** Target-конфигурация E-01: 64 layers, `d_model=8192`, GQA `64Q/8KV`, head dimension 128, hybrid attention `7 local : 1 global`, local window 16 384, 144 routed experts + 1 shared expert, Top-6 routing, expert `d_ff=2048`, vocabulary 128K, context target 262 144 и BF16 master.
 
-**ENGINEERING HYPOTHESIS —** Broad CPT по умолчанию исключён: для уже post-trained Instruct checkpoint он создаёт высокий риск потери instruction/tool alignment. Допустимы только узкие, gated ablations после baseline evaluation.
+**EXPERIMENT REQUIRED —** Расчётные оценки `~478.9B` total и `~34.4B` active parameters являются design estimates и должны быть подтверждены executable parameter-count proxy, точной политикой MoE placement, embeddings/output tying и реализацией shared expert до freeze архитектуры.
 
-**ENGINEERING HYPOTHESIS —** Канонический lineage E-01: `S0 → A1 → M1 → A2 → M2 → A3 → M3 → A4 → M4 → FP8`; `A1..A4` — retained adapters, `M1..M4` — immutable BF16 merges, FP8 — только serving derivative после parity-проверки.
+**VERIFIED FACT —** Qwen не является weight parent, initialization source, tokenizer source, runtime dependency или частью canonical lineage E-01.
 
-**ENGINEERING HYPOTHESIS —** Internal MoE router и experts на первых стадиях заморожены. Их adaptation разрешается только отдельным experiment gate после доказанного adapter ceiling.
+**VERIFIED FACT —** Qwen допустим только как внешний benchmark и как опциональный offline synthetic teacher по ADR-0009. Teacher output не является ground truth и не входит в веса напрямую без lineage, filtering и независимой verification.
 
-**VERIFIED FACT —** `Qwen/Qwen3-Coder-Next-Base` 80B/3B больше не является foundation E-01. Он может упоминаться только как исторически отвергнутая или альтернативная ветвь.
+**VERIFIED FACT —** Канонический lineage определён ADR-0010: corpus/tokenizer provenance → random initialization → proxy pretraining → accepted scale transfer → full E-01 pretraining → base checkpoint → post-training stages → BF16 master → отдельный serving derivative после parity.
 
-**VERIFIED FACT —** Репозиторий описывает LÆTEX честно: это proprietary post-trained enterprise action model, built from open-weight foundations. Проект не заявляет pretraining from zero и не скрывает происхождение checkpoint в internal model card и юридических материалах.
+**VERIFIED FACT —** Все model workloads выполняются только на production-grade NVIDIA H200 HGX cluster с NVLink/NVSwitch внутри узла и provider-attested InfiniBand между узлами. Локальная машина — control/documentation plane без weights, training corpus и model workloads.
 
-**VERIFIED FACT —** Обучение и тяжёлый inference разрешены только на NVIDIA H200 в RunPod. Локальная машина — control/documentation plane без весов модели, датасетов клиента и training workloads.
+**RISK —** Принятие независимого 478.9B-class MoE не доказывает trainability, качество, стоимость или достижимость 262K context. Полномасштабный run запрещён до proxy validation, data-readiness gate, H200 topology acceptance и утверждённого бюджета.
 
-**VERIFIED FACT —** Официальная card metadata для прямого upstream E-01 указывает Apache-2.0.
+## Канонические документы
 
-**RISK —** Hugging Face commit SHA — revision identifier, а не SHA-256 hash весов. Training остаётся заблокированным, пока на RunPod не скачаны и не захешированы все 241 weight shards, config, tokenizer и chat template, а license/notices не архивированы и не захешированы. Metadata-tag и API file list без source preflight manifest недостаточны.
-
-## Границы текущего репозитория
-
-**VERIFIED FACT —** Сейчас репозиторий является source-of-truth для архитектуры и источников, а не training stack и не runtime.
-
-**ENGINEERING HYPOTHESIS —** Следующие реализации должны появляться только после утверждения контрактов: schemas состояния и действий, policy gates, dataset manifests, RunPod job specifications, evaluation harness и checkpoint registry.
-
-**RISK —** Наличие документации не доказывает качество модели, безопасность исполнения, экономику H200 или превосходство над другими моделями. В репозитории нет и не заявляется ни одного verified benchmark result.
-
-## Документы
-
-- [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) — границы системы, пять planes, closed loop, tenant isolation и артефакты.
-- [`docs/SOURCES.md`](docs/SOURCES.md) — закреплённые официальные источники, revision checkpoint и журнал проверки.
-- [`docs/RELEASE-GATES.md`](docs/RELEASE-GATES.md) — conjunctive hard gates и evidence contract.
-- [`docs/ROADMAP-90D.md`](docs/ROADMAP-90D.md) — 13-недельный gated R&D roadmap.
-- [`docs/SPEED-QUALITY.md`](docs/SPEED-QUALITY.md) — serving bakeoff, precision, cache isolation, экономика и latency targets.
-- [`docs/RISK-REGISTER.md`](docs/RISK-REGISTER.md) — risks, triggers, mitigations и acceptance.
-- [`docs/planes/`](docs/planes/) — Foundation, Adapter-MoE, CodeWorld, World Model и Execution/Verification.
-- [`docs/branches/`](docs/branches/) — E-01 и условные research branches.
-- [`docs/adr/`](docs/adr/) — зафиксированные архитектурные решения.
-- [`research/identity/`](research/identity/) — identity overwrite contract и adversarial evaluation.
-- [`research/datasets/`](research/datasets/) — LÆTEX Corpus contracts, lineage и tenant isolation.
-- [`eval/laetex-bench/`](eval/laetex-bench/) — четыре evaluation tracks, metrics, anti-contamination и [`baseline manifest`](eval/laetex-bench/baseline-manifest.yaml).
-- [`training/`](training/) — порядок фаз и phase-specific compute/gate contracts.
-- [`infra/runpod/`](infra/runpod/) — H200-only compute architecture и 13 документационных профилей.
-- [`model/README.md`](model/README.md) и [`model/latex-e01-480a35.yaml`](model/latex-e01-480a35.yaml) — model-stage manifests и полный machine-readable lineage.
+- **VERIFIED FACT —** [`docs/adr/0007-independent-from-scratch-e01.md`](docs/adr/0007-independent-from-scratch-e01.md) — принятое foundation decision.
+- **VERIFIED FACT —** [`docs/adr/0008-custom-tokenizer.md`](docs/adr/0008-custom-tokenizer.md) — custom tokenizer decision.
+- **VERIFIED FACT —** [`docs/adr/0009-qwen-reference-teacher-firewall.md`](docs/adr/0009-qwen-reference-teacher-firewall.md) — Qwen benchmark/teacher firewall.
+- **VERIFIED FACT —** [`docs/adr/0010-scratch-pretrain-post-train-lineage.md`](docs/adr/0010-scratch-pretrain-post-train-lineage.md) — scratch lineage.
+- **VERIFIED FACT —** [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md), [`docs/planes/FOUNDATION.md`](docs/planes/FOUNDATION.md) и [`docs/branches/E-01.md`](docs/branches/E-01.md) — canonical architecture.
+- **VERIFIED FACT —** [`docs/SOURCES.md`](docs/SOURCES.md) — evidence classes и external references.
+- **VERIFIED FACT —** [`docs/branches/HISTORICAL/qwen-derivative-e01/`](docs/branches/HISTORICAL/qwen-derivative-e01/) — архив superseded Qwen-derivative design; архив не санкционирует weight lineage.
 
 ## Жёсткие инварианты
 
-1. **VERIFIED FACT —** На local control plane нет model weights, локального fine-tuning, CPT, RL, teacher generation или inference модели.
-2. **ENGINEERING HYPOTHESIS —** Любое действие LÆTEX проходит policy check, исполняется в tenant-isolated sandbox и создаёт evidence.
-3. **ENGINEERING HYPOTHESIS —** Клиентские данные по умолчанию не попадают в общий corpus; обучение возможно только по явному opt-in и отдельному договорному/техническому контуру.
-4. **RISK —** RunPod availability, quota, topology и цена меняются; каждый запуск требует preflight-проверки конкретного H200-кластера, сети, storage и бюджета.
-5. **EXPERIMENT REQUIRED —** Любое утверждение о latency, throughput, task completion, стоимости и качестве публикуется только после воспроизводимого прогона LÆTEX-Bench с закреплёнными artifacts.
+1. **VERIFIED FACT —** Никакой внешний checkpoint не является parent E-01.
+2. **VERIFIED FACT —** На local control plane нет weights, local training, fine-tuning, RL, teacher generation или model inference.
+3. **ENGINEERING HYPOTHESIS —** Любое действие LÆTEX проходит policy check, tenant-isolated sandbox и evidence verification.
+4. **ENGINEERING HYPOTHESIS —** Raw tenant data по умолчанию не входит в общий corpus; обучение требует explicit opt-in и отдельного contract/lineage boundary.
+5. **EXPERIMENT REQUIRED —** Любые claims о quality, latency, throughput, cost или superiority требуют reproducible LÆTEX-Bench artifacts.

@@ -1,0 +1,18 @@
+schema: laetex.runpod.profile/v3
+name: proxy7
+enabled: true
+stage: PX2-7B
+classification: EXPERIMENT_REQUIRED
+purpose: "From-scratch 7B scaling/μP proxy; weights never enter target lane."
+platform: {provider: RunPod, cloud: Secure Cloud, accelerator: NVIDIA H200, local_model_workloads: forbidden}
+compute: {minimum: {world_size: 16, nodes: 2}, recommended: {world_size: 32, nodes: 4}, precision: BF16}
+parallelism:
+  minimum: {TP: 2, PP: 1, EP: 1, CP: 1, DP: 8}
+  recommended: {TP: 4, PP: 1, EP: 1, CP: 1, DP: 8}
+  rule: "world_size=TP*PP*EP*CP*DP"
+network: {required: "NVLink/NVSwitch and provider-attested InfiniBand", acceptance: "NCCL, distributed-loss and checkpoint restore"}
+storage: {working: "RunPod Network Volume", durable_source_of_truth: "external encrypted versioned object store"}
+checkpoint: {input: "T0/D0 plus independent initialization", output: "proxy-only checkpoint and scaling fit", cadence: "every 2 hours or frozen token interval", target_parent: forbidden}
+wall_clock: {classification: ENGINEERING_HYPOTHESIS, estimate: "TBD by PX1 scaling fit"}
+gate: "scaling residual within preregistered band and cold restore passes"
+economic_gate: "PX3 requires a credible architecture discrimination value, not only lower loss."

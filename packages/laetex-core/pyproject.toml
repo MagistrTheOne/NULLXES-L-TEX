@@ -1,0 +1,16 @@
+[build-system]
+requires = ["hatchling>=1.26"]
+build-backend = "hatchling.build"
+
+[project]
+name = "laetex-core"
+version = "0.1.0"
+description = "Pure PyTorch CPU-reference transformer core for LÆTEX"
+requires-python = ">=3.10"
+dependencies = [
+  "PyYAML>=6.0",
+  "torch>=2.2",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/laetex_core"]

@@ -1,0 +1,12 @@
+apiVersion: nullxes.model-stage/v2
+kind: LongContextStage
+metadata: {id: LC32K, status: planned, execution_state: not_run}
+spec:
+  lane: target
+  parent: artifact://latex-e01/P0-PRETRAIN-8K/BF16/PENDING
+  context_tokens: 32768
+  objective: "Continue pretraining with frozen context curriculum and position-scaling ablations."
+  trainable_scope: all_target_parameters
+  runtime: {accelerator: NVIDIA_H200, minimum_gpus: 512, recommended_gpus: 1024, local_training: forbidden}
+  gates: [P0_accepted, short_context_noninferiority, 32K_retrieval_and_code_pass, memory_and_throughput_gate, resume_pass]
+  output: artifact://latex-e01/LC32K/BF16/PENDING

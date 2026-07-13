@@ -1,0 +1,17 @@
+apiVersion: nullxes.model-stage/v2
+kind: ProxyStage
+metadata: {id: PX1-1B, status: planned, execution_state: not_run}
+spec:
+  lane: proxy
+  parent_weights: none
+  initialization: from_scratch
+  scale: {nominal_parameters: 1B, exact_parameters: PENDING_ARCH_FREEZE}
+  purpose: "Validate tokenizer integration, packing, optimizer, loss, determinism and checkpoint/resume."
+  inputs:
+    tokenizer: artifact://latex-e01/T0-TOKENIZER/PENDING
+    corpus: artifact://latex-e01/D0-CORPUS/PENDING
+  transfers_to_target: [measured_scaling_points, failure_evidence, tested_code_and_config]
+  forbidden_transfers_to_target: [weights, optimizer_state, checkpoint_shards]
+  runtime: {accelerator: NVIDIA_H200, local_execution: forbidden}
+  gates: [loss_curve_sane, exact_resume_pass, data_lineage_complete, no_target_weight_parentage]
+  output: artifact://latex-e01/proxy/PX1-1B/PENDING

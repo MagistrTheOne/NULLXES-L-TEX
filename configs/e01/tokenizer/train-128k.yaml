@@ -1,0 +1,36 @@
+schema: laetex.tokenizer.training/v1
+name: laetex-independent-byte-bpe-128k
+classification: EXPERIMENT_REQUIRED
+scope: "Independent LÆTEX tokenizer research; forbidden as an E-01 tokenizer replacement."
+
+execution:
+  production_provider: RunPod
+  production_only: true
+  required_environment:
+    - RUNPOD_POD_ID
+  local_policy: "Synthetic fixture <=1 MiB only with --execution-mode test --test-mode."
+
+tokenizer:
+  type: byte_level_bpe
+  vocab_size: 128000
+  min_frequency: 2
+  byte_fallback: true
+  initial_alphabet: bytelevel_256
+  add_prefix_space: false
+
+normalization:
+  unicode: identity
+  line_endings: preserve
+
+sampling:
+  seed: 1701
+  max_bytes: 107374182400
+  validation_fraction: 0.01
+  exact_dedup: sha256
+
+release_gates:
+  exact_production_vocab_size: 128000
+  lossless_roundtrip: true
+  atomic_special_tokens: true
+  source_hash_match: true
+  compression_report_required: true

@@ -1,12 +1,12 @@
-# ADR-0005: foundation не является teacher; future critic только offline
+# ADR-0005: external teacher/critic только offline
 
 - **VERIFIED FACT:** Статус: Accepted.
-- **VERIFIED FACT:** Область: E-01 foundation и future critic/quality tier.
+- **VERIFIED FACT:** Область: external critic/quality tier; уточнён ADR-0009.
 
 ## Контекст
 
-- **VERIFIED FACT:** `Qwen/Qwen3-Coder-480B-A35B-Instruct` — direct post-trained foundation E-01: 480B total, 35B activated, 62 layers, 160 experts, Top-8 и native 262 144 context.
-- **VERIFIED FACT:** Foundation не считается teacher для собственного post-training и не используется как доказательство качества собственных synthetic labels.
+- **VERIFIED FACT:** По ADR-0007 E-01 является independent from-scratch model без внешнего weight parent.
+- **VERIFIED FACT:** Qwen не является foundation; ADR-0009 допускает его только как benchmark и опциональный offline synthetic teacher.
 - **RISK:** Выход любого будущего critic/teacher не является ground truth и может передавать correlated errors, identity и unsafe tool behavior.
 
 ## Решение
@@ -30,3 +30,7 @@
 ## Release artifact
 
 - **VERIFIED FACT:** Critic manifest содержит exact repo/revision, tokenizer/config hashes, generation config, H200 topology, dataset lineage, verifier versions и accepted/rejected sample counts.
+
+## Relation
+
+- **VERIFIED FACT:** При конфликте с этим документом ADR-0009 имеет приоритет.

@@ -1,0 +1,19 @@
+[build-system]
+requires = ["hatchling>=1.27"]
+build-backend = "hatchling.build"
+
+[project]
+name = "laetex-validation"
+version = "0.1.0"
+description = "CPU-only schema, invariant, and parameter-count validation for LÆTEX configs"
+requires-python = ">=3.11"
+dependencies = [
+  "jsonschema>=4.23",
+  "PyYAML>=6.0.2",
+]
+
+[project.scripts]
+laetex-validate = "laetex_validation.config:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/laetex_validation"]

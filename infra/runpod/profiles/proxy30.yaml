@@ -1,0 +1,18 @@
+schema: laetex.runpod.profile/v3
+name: proxy30
+enabled: true
+stage: PX3-30B
+classification: EXPERIMENT_REQUIRED
+purpose: "Target-like MoE, routing, hybrid-attention and EP systems proxy."
+platform: {provider: RunPod, cloud: Secure Cloud, accelerator: NVIDIA H200, local_model_workloads: forbidden}
+compute: {minimum: {world_size: 64, nodes: 8}, recommended: {world_size: 128, nodes: 16}, precision: "BF16 master; FP8 compute only after proxy parity"}
+parallelism:
+  minimum: {TP: 4, PP: 2, EP: 4, CP: 1, DP: 2}
+  recommended: {TP: 4, PP: 2, EP: 8, CP: 1, DP: 2}
+  rule: "world_size=TP*PP*EP*CP*DP"
+network: {required: "NVLink/NVSwitch and provider-attested InfiniBand", acceptance: "NCCL all-to-all, expert-load, failure and restore tests"}
+storage: {working: "RunPod Network Volume", durable_source_of_truth: "external encrypted versioned object store"}
+checkpoint: {input: "T0/D0 plus independent target-like proxy init", output: "proxy-only checkpoint and architecture evidence", cadence: "hourly or frozen token interval", target_parent: forbidden}
+wall_clock: {classification: ENGINEERING_HYPOTHESIS, estimate: "TBD by PX1/PX2 scaling and network pilots"}
+gate: "router collapse=0, expert-load and MFU targets pass, cold restore passes"
+economic_gate: "ARCH-FREEZE requires target-like evidence that cannot be obtained cheaper at PX2."
