@@ -72,11 +72,11 @@
 - **[RISK]** Непроверенный resume может потерять дорогой training run.
 - **[VERIFIED FACT]** GO: checkpoint restore, metric continuity и artifact upload подтверждены. NO-GO: локальный fallback, untracked image или неполный checkpoint.
 
-### Неделя 6 — identity LoRA M1
+### Неделя 6 — identity/tool adapter A1
 
-- **[VERIFIED FACT]** Артефакты: unified attention-only identity adapter M1, S0/adapter hashes, run manifest, data lineage и telemetry.
+- **[VERIFIED FACT]** Артефакты: retained unified attention-only identity adapter `A1`, S0/A1 hashes, run manifest, data lineage и telemetry; train job не создаёт M1.
 - **[ENGINEERING HYPOTHESIS]** Узкий identity stage изменит self-identification и contract behavior без broad CPT.
-- **[EXPERIMENT REQUIRED]** Проверить M1 до merge: identity `0/10 000`, tool gate и coding regression `<=2 pp`.
+- **[EXPERIMENT REQUIRED]** Проверить `A1` поверх S0 до merge: identity `0/10 000`, tool gate и coding regression `<=2 pp`.
 - **[RISK]** Generic refusal может искусственно улучшить identity score и повредить coding.
 - **[VERIFIED FACT]** GO: все hard gates пройдены. NO-GO: adapter сохраняется как failed artifact и не merge-ится.
 
@@ -88,18 +88,18 @@
 - **[RISK]** Merge drift без отдельной проверки может скрыть потерю identity behavior.
 - **[VERIFIED FACT]** GO: signed M1 report и reproducible merge. NO-GO: merged M1 не становится parent.
 
-### Неделя 8 — action SFT M2
+### Неделя 8 — Action SFT adapter A2
 
-- **[VERIFIED FACT]** M2 использует новый unified attention-only adapter поверх verified BF16 M1 и fresh optimizer.
+- **[VERIFIED FACT]** `A2` — новый retained unified attention-only adapter поверх verified BF16 M1 с fresh optimizer; train job не создаёт M2.
 - **[ENGINEERING HYPOTHESIS]** Verified action SFT закрепит tool grammar, evidence и recovery лучше identity-only M1.
 - **[EXPERIMENT REQUIRED]** Проверить executable outcomes, identity `0/10 000`, tool validity и coding regression `<=2 pp`.
 - **[RISK]** Форматный SFT может улучшить schema score без task completion.
-- **[VERIFIED FACT]** GO: M2 проходит hard gates. NO-GO: M2 не merge-ится.
+- **[VERIFIED FACT]** GO: A2 проходит hard gates. NO-GO: A2 не допускается к отдельному M2 merge.
 
 ### Неделя 9 — BF16 merge M2 и lineage freeze
 
-- **[VERIFIED FACT]** M2 merge повторяет BF16-only, retained-adapter, immutable-hash, post-merge regression и fresh-optimizer gates.
-- **[EXPERIMENT REQUIRED]** Freeze release lineage `S0/M1/M2`; M3 preference и M4 GRPO остаются `not_started` до отдельного approval.
+- **[VERIFIED FACT]** Отдельный M2 merge создаёт `M2=M1+A2` и повторяет BF16-only, retained-adapter, immutable-hash, post-merge regression и fresh-optimizer gates.
+- **[EXPERIMENT REQUIRED]** Freeze полный release-lineage manifest `S0 → A1 → M1 → A2 → M2 → A3 → M3 → A4 → M4 → FP8`; A3/M3 и A4/M4 остаются `not_started` до отдельного approval.
 - **[RISK]** Сжатие M3/M4 в 90 дней ради графика создаёт непроверенный reward-hacking risk.
 
 ### Неделя 10 — World Model V0 и deferred routing ablation design
@@ -138,7 +138,7 @@
 
 ## 4. Сквозные зависимости и бюджетные остановки
 
-- **[VERIFIED FACT]** Порядок критического пути: immutable S0 baseline → governed identity/action sets → H200 pipeline → M1 train/verify/BF16 merge → M2 train/verify/BF16 merge → integration hardening → два clean runs.
+- **[VERIFIED FACT]** Порядок критического пути: immutable S0 baseline → governed identity/action sets → H200 pipeline → A1 train/verify → M1 BF16 merge → A2 train/verify → M2 BF16 merge → integration hardening → два clean runs; будущие A3→M3→A4→M4→FP8 не сжимаются ради календаря.
 - **[RISK]** Запуск дорогого H200 training до готовности evaluation и lineage создаёт checkpoint без доказательной ценности.
 - **[VERIFIED FACT]** H200 run экономически разрешён только при наличии pre-registered objective, stop condition, budget cap, artifact destination и rollback/resume plan.
 - **[ENGINEERING HYPOTHESIS]** Недельные gates снижают sunk-cost risk лучше, чем один финальный benchmark.

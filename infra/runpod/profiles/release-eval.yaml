@@ -1,8 +1,9 @@
 schema: laetex.runpod.profile/v2
 name: release-eval
+enabled: true
 phase: 6
 classification: EXPERIMENT_REQUIRED
-purpose: "Frozen BF16 release qualification plus a separate FP8 candidate parity gate."
+purpose: "Frozen BF16 release qualification plus evaluation of a separately converted FP8 serving derivative."
 foundation:
   repo: Qwen/Qwen3-Coder-480B-A35B-Instruct
   role: foundation_and_production_candidate
@@ -18,13 +19,13 @@ compute:
   gpu: {model: NVIDIA H200 SXM, hbm_gb: 141, gpus_per_node: 8}
   minimum: {gpus: 16, nodes: 2}
   recommended: {gpus: 32, nodes: 4}
-  fp8_candidate: {minimum_gpus: 8, recommended_gpus: 16, parity_required: true}
+  fp8_serving_candidate: {minimum_gpus: 8, recommended_gpus: 16, requires_completed_16_gpu_conversion: true, fit_and_parity_required: true}
   precision: "BF16 master qualification; FP8 is an export candidate only"
 parallelism:
   minimum: {world_size: 16, TP: 8, PP: 2, CP: 1, DP: 1, EP: 1}
   recommended: {world_size: 32, TP: 8, PP: 2, CP: 1, DP: 2, EP: 1}
-  fp8_minimum: {world_size: 8, TP: 8, PP: 1, CP: 1, DP: 1, EP: 1}
-  fp8_recommended: {world_size: 16, TP: 8, PP: 2, CP: 1, DP: 1, EP: 1}
+  fp8_serving_minimum: {world_size: 8, TP: 8, PP: 1, CP: 1, DP: 1, EP: 1}
+  fp8_serving_recommended: {world_size: 16, TP: 8, PP: 2, CP: 1, DP: 1, EP: 1}
   world_size_rule: "world_size=TP*PP*CP*DP; EP is not an extra multiplier"
   ep_semantics: "EP=1; frozen inference only"
 network:
@@ -36,7 +37,7 @@ storage:
   local_scratch: ephemeral_only
 checkpoint:
   input: "Frozen M4 BF16 master plus independent router/World Model artifacts if accepted"
-  output: "No training checkpoint; signed BF16 release manifest and optional FP8 export manifest"
+  output: "No training or conversion checkpoint; signed BF16 release manifest and optional FP8 serving parity manifest"
   cadence: "Task ledger every 15 minutes; signed evidence batch hourly"
   retention: "All release evidence, M4 BF16 and qualified FP8 export"
   optimizer_policy: "No optimizer; training and merge disabled"
@@ -49,17 +50,17 @@ metrics:
 stop_conditions:
   - "Any critical security/governance, lineage, signature or contamination failure"
   - "FP8 parity failure; BF16 master remains unaffected"
-economic_gate: "Full release run only after integrity smoke; FP8 export only if 8/16-GPU load and quality parity pass."
+economic_gate: "Full release run only after integrity smoke; FP8 serving on 8/16 GPUs only after separate 16/32-GPU conversion/export, measured fit and quality parity."
 artifacts:
   - signed-bf16-release-bundle
-  - optional-fp8-export-bundle
+  - optional-fp8-serving-parity-bundle
   - laetex-bench-evidence
   - release-or-reject-decision
 validation:
   profile_only: true
   checks:
     - "BF16: 16=8*2*1*1 and 32=8*2*1*2"
-    - "FP8: 8=8*1*1*1 and 16=8*2*1*1"
+    - "FP8 serving only: 8=8*1*1*1 and 16=8*2*1*1; conversion uses fp8-export.yaml at 16/32"
     - "FP8 is never a training or merge parent"
 assumptions:
   - {tag: ENGINEERING_HYPOTHESIS, statement: "BF16 960 GB weights make 8 H200 physically tight; 16 is the minimum pending memory proof."}

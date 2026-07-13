@@ -18,7 +18,7 @@ spec:
     parameters: {rank: 64, alpha: 128, dropout: 0.05}
     modules:
       class: attention_projections
-      exact_names: PIN_AFTER_STATE_DICT_AUDIT
+      exact_names: PENDING_STATE_DICT_AUDIT
     frozen: [router, routed_experts, embeddings, tokenizer, base_weights]
     optimizer_state: new
   data:

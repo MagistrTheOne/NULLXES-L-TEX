@@ -29,8 +29,8 @@
 |---|---|
 | Objective | **[EXPERIMENT REQUIRED]** Frozen inference, red team, replay и promotion; training disabled. |
 | Minimum H200 | **[ENGINEERING HYPOTHESIS]** BF16 16× H200; 8 физически тесны для ~960 GB weights плюс runtime overhead. |
-| Recommended H200 | **[ENGINEERING HYPOTHESIS]** BF16 32× H200; FP8 candidate 8 minimum / 16 recommended only after parity. |
-| Parallelism | **[ENGINEERING HYPOTHESIS]** BF16 16: TP8/PP2/CP1/DP1/EP1; 32: TP8/PP2/CP1/DP2/EP1. FP8 8: TP8/PP1/DP1; 16: TP8/PP2/DP1. |
+| Recommended H200 | **[ENGINEERING HYPOTHESIS]** BF16 32× H200; BF16→FP8 conversion/export и parity minimum 16 / recommended 32; final FP8 serving minimum 8 только после fit/parity. |
+| Parallelism | **[ENGINEERING HYPOTHESIS]** BF16 и FP8 conversion 16: TP8/PP2/CP1/DP1/EP1; 32: TP8/PP2/CP1/DP2/EP1. Final parity-approved FP8 serving 8: TP8/PP1/DP1; 8-GPU serving не выполняет conversion. |
 | VRAM | **[ENGINEERING HYPOTHESIS]** BF16 source of truth; FP8 is a derived inference export, never training/merge parent. |
 | Network | **[VERIFIED FACT]** NVLink/NVSwitch intra-node. **[RISK]** Для recommended multi-node RunPod `ens*` требуется с InfiniBand attestation; identical bundle hash и NCCL/IB acceptance на всех replicas. |
 | Storage | **[ENGINEERING HYPOTHESIS]** 4 TB min / 10 TB rec Network Volume; signed evidence и release artifacts в external encrypted object registry. |
@@ -48,7 +48,7 @@
 ## Promotion
 
 1. **[VERIFIED FACT]** Проверить hashes, notices, SBOM, signatures и resume/load.
-2. **[VERIFIED FACT]** Связать `U0`, retained `A1..A4`, BF16 `M1..M4`, auxiliaries, tokenizer/template/tool schema одним bundle manifest.
+2. **[VERIFIED FACT]** Связать полный `S0 → A1 → M1 → A2 → M2 → A3 → M3 → A4 → M4 → FP8`, auxiliaries, tokenizer/template/tool schema одним bundle manifest.
 3. **[EXPERIMENT REQUIRED]** Выполнить canary в изолированном H200 inference environment без customer traffic.
 4. **[RISK]** Production promotion требует human release authority; model не может одобрить собственный release.
 5. **[VERIFIED FACT]** FP8 promotion не изменяет BF16 master pointer и отменяется при любом parity failure.

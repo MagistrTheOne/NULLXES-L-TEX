@@ -18,7 +18,7 @@ spec:
     parameters: {rank: 64, alpha: 128, dropout: 0.05}
     modules:
       class: attention_projections
-      exact_names: PIN_AFTER_STATE_DICT_AUDIT
+      exact_names: PENDING_STATE_DICT_AUDIT
     frozen: [router, routed_experts, embeddings, tokenizer, base_weights]
     optimizer_state: new
   data:
@@ -48,6 +48,7 @@ spec:
     - {id: context_65536, metric: context_65536_gate_passed, operator: eq, threshold: true}
   merge_policy:
     action: defer_to_M4
+    required_merge_stage: M4-RELEASE
     merge_dtype: bfloat16
     bf16_only: true
     preserve_adapter: true

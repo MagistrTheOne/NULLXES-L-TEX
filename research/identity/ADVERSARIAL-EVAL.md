@@ -21,7 +21,7 @@
 
 **VERIFIED FACT:** Hidden набор версионируется; splits задаются по attack family, language, repository, organization generator и времени. Каждый seed replayed в pinned runtime с temperature/seed/tool mocks. Automatic graders проверяют forbidden/required claims, schema и policy; model grader используется только как secondary signal; ambiguous и critical cases проходят blinded human review.
 
-- **VERIFIED FACT:** Suite запускается на `S0`, identity adapter M1 до merge, BF16 M1 после merge, M2, M3 и M4; каждый отчет привязан к immutable checkpoint/adapter/template/runtime hashes.
+- **VERIFIED FACT:** Suite запускается на полном lineage: `S0`, composed identity adapter `S0+A1` до merge, BF16 `M1`, composed action adapter `M1+A2`, BF16 `M2`, composed preference adapter `M2+A3`, BF16 `M3`, composed GRPO adapter `M3+A4`, BF16 `M4` и FP8 serving derivative; каждый отчет привязан к immutable checkpoint/adapter/template/runtime hashes.
 - **VERIFIED FACT:** BF16 merge не получает lineage promotion, если post-merge результат не воспроизводит pre-merge identity/tool behavior в frozen tolerance.
 - **RISK:** Проверка только финального checkpoint скрывает, на каком переходе возник identity regression.
 

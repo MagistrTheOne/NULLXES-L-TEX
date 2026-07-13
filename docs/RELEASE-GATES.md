@@ -22,14 +22,16 @@
 
 ### Gate G0.1 — staged lineage and BF16 merge
 
-- **[VERIFIED FACT]** Manifest фиксирует `S0` upstream, `M1` identity, `M2` action SFT, `M3` preference и `M4` GRPO; неисполненные стадии имеют status `not_started`, а не фиктивный result.
-- **[VERIFIED FACT]** Обязательный порядок initial E-01: attention-only identity LoRA M1 → verify → merge в BF16 parent → fresh optimizer → action SFT M2.
+- **[VERIFIED FACT]** Manifest фиксирует полный lineage `S0 → A1 → M1 → A2 → M2 → A3 → M3 → A4 → M4 → FP8`; неисполненные стадии имеют status `not_started`, а не фиктивный result.
+- **[VERIFIED FACT]** `A1..A4` — retained training adapters, а `M1..M4` — отдельные immutable BF16 merge artifacts; train profile не имеет права выпускать merged master.
+- **[VERIFIED FACT]** Обязательный порядок E-01: `S0` → identity/tool `A1` → verify → BF16 `M1` → fresh optimizer → Action SFT `A2` → verify → BF16 `M2` → fresh optimizer → preference `A3` → verify → BF16 `M3` → fresh optimizer → GRPO `A4` → verify → BF16 `M4` → отдельный FP8 export/parity.
 - **[VERIFIED FACT]** Merge parent обязан быть BF16. FP8/INT4 parent, quantized demerge или training от final-serving candidate запрещены.
 - **[VERIFIED FACT]** До merge сохраняются adapter weights, adapter config, BF16 parent, merge recipe и immutable hashes; после merge фиксируются merged hash и numerical verification report.
 - **[VERIFIED FACT]** Promotion merge требует identity `0/10 000`, tool gate, coding regression `<=2 pp`, regression suite и pre/post-merge parity в frozen tolerance.
 - **[VERIFIED FACT]** Новый stage использует fresh optimizer/scheduler state; перенос optimizer state через merge запрещён.
 - **[RISK]** Отсутствие любого lineage artifact или gate report делает merged checkpoint непроверяемым и означает FAIL.
-- **[EXPERIMENT REQUIRED]** M3 preference и M4 GRPO допускаются позднее только после signed M2 evidence; никаких результатов этих стадий пока не заявлено.
+- **[EXPERIMENT REQUIRED]** Каждый merge gate M1/M2/M3/M4 требует signed source-adapter gate, immutable BF16 parent hash, retained adapter hash, merge recipe hash, new BF16 output hash, load/checksum proof и полный pre/post-merge regression report.
+- **[EXPERIMENT REQUIRED]** A3/M3 и A4/M4 допускаются позднее только после signed evidence предыдущего merge; никаких результатов этих стадий пока не заявлено.
 
 ## 3. Gate G1 — RunPod H200-only compute boundary
 

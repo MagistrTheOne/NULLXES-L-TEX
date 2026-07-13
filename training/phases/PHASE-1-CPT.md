@@ -6,7 +6,7 @@
 
 - **[VERIFIED FACT]** Identity `A1`: [`../../infra/runpod/profiles/identity-lora.yaml`](../../infra/runpod/profiles/identity-lora.yaml).
 - **[VERIFIED FACT]** Separate BF16 merge `M1`: [`../../infra/runpod/profiles/merge-m1.yaml`](../../infra/runpod/profiles/merge-m1.yaml).
-- **[VERIFIED FACT]** Optional DAPT points only to disabled contract [`../../infra/runpod/profiles/cpt-disabled.yaml`](../../infra/runpod/profiles/cpt-disabled.yaml); broad CPT has no enabled profile in E-01.
+- **[VERIFIED FACT]** Optional DAPT points only to [`../../infra/runpod/profiles/cpt.yaml`](../../infra/runpod/profiles/cpt.yaml) with `enabled: false`; broad CPT has no enabled profile in E-01.
 - **[VERIFIED FACT]** Strict position: accepted `S0 → A1 → M1`; action `A2` cannot consume an unmerged adapter.
 - **[RISK]** Missing, disabled, unsigned or hash-unpinned profile blocks the corresponding job. No run or gate pass is claimed here.
 
@@ -21,7 +21,7 @@
 
 - **[ENGINEERING HYPOTHESIS]** Default LoRA targets dense attention projections; upstream MoE router и 160 routed experts frozen.
 - **[VERIFIED FACT]** Upstream config сообщает `shared_expert_intermediate_size: 0`; нельзя проектировать Stage 1 вокруг несуществующего shared expert.
-- **[EXPERIMENT REQUIRED]** DAPT допускается только как отдельно approved ablation после явной замены disabled state в `cpt-disabled.yaml`, с отдельным budget, data gate и no-regression criterion; он не создаёт default master lineage.
+- **[EXPERIMENT REQUIRED]** DAPT допускается только как отдельно approved ablation после явного изменения `enabled: false` в `cpt.yaml`, с отдельным budget, data gate и no-regression criterion; он не создаёт default master lineage.
 - **[VERIFIED FACT]** Raw tenant data запрещены без explicit opt-in lineage.
 
 ## Exact success metric и stop condition

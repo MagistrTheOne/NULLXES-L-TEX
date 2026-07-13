@@ -39,10 +39,10 @@
 | Поле | Спецификация |
 |---|---|
 | Objective | **[EXPERIMENT REQUIRED]** Обучить router и отдельный compact transition model; это два tracked jobs. |
-| Minimum H200 | **[ENGINEERING HYPOTHESIS]** 8× H200 SXM 141 GB, один Secure Cloud HGX Pod. |
+| Minimum H200 | **[ENGINEERING HYPOTHESIS]** 8× H200 SXM 141 GB только для auxiliary router/compact V1 без 480B shards; 480B M4 load/eval требует отдельный minimum-16-H200 allocation pending memory proof. |
 | Recommended H200 | **[ENGINEERING HYPOTHESIS]** 32× H200 SXM 141 GB, 4 узла для parallel ablations. |
 | Parallelism | **[ENGINEERING HYPOTHESIS]** Router/V1 min TP=1, PP=1, EP=1, CP=1, DP=8; rec V1 TP=2, DP=16; PP/EP/CP=1. |
-| VRAM | **[ENGINEERING HYPOTHESIS]** H200 SXM 141 GB/GPU planning value; router/V1 не требуют 480B optimizer residency; full `M4` route eval планируется на отдельном 16/32-H200 inference allocation. |
+| VRAM | **[ENGINEERING HYPOTHESIS]** H200 SXM 141 GB/GPU planning value; 8-GPU router/V1 jobs никогда не загружают и не shards 480B policy; full `M4` route eval планируется на отдельном 16/32-H200 inference allocation. |
 | Network | **[VERIFIED FACT]** NVLink/NVSwitch intra-node. **[RISK]** Для recommended multi-node RunPod `ens*` допускается только с InfiniBand attestation; NCCL/IB parity и event-ledger replay обязательны. |
 | Storage | **[ENGINEERING HYPOTHESIS]** 4 TB min / 10 TB rec Network Volume; encrypted registry хранит trace lineage/schema/router/V1. |
 | Checkpoint | **[ENGINEERING HYPOTHESIS]** Каждые 1,000 steps/2 часа; independent router/V1 checkpoints with fresh optimizers; `M4` immutable. |

@@ -4,7 +4,7 @@
 
 - **VERIFIED FACT:** Base MoE маршрутизирует token representations между 160 внутренними experts, Top-8, без shared expert.
 - **VERIFIED FACT:** Initial E-01 не изменяет base router и не применяет LoRA ко всем experts.
-- **VERIFIED FACT:** Решение initial E-01 — unified attention-only adapters: M1 identity, затем M2 action SFT.
+- **VERIFIED FACT:** Решение initial E-01 — unified attention-only adapters: `A1` identity/tool от S0, отдельный BF16 merge `M1`, затем `A2` Action SFT от M1 и отдельный BF16 merge `M2`.
 - **EXPERIMENT REQUIRED:** Request-level Top-2 из восьми domain adapters отложен; это будет отдельный control mechanism только при доказанном uplift.
 
 ## Domain packs
@@ -28,8 +28,8 @@
 
 ## Training and evaluation
 
-- **VERIFIED FACT:** Stage order: immutable BF16 S0 → attention-only identity LoRA M1 → hard verification → BF16 merge с retained adapter/hashes → fresh optimizer → action SFT M2.
-- **VERIFIED FACT:** FP8/INT4 parent запрещён; preference M3 и GRPO M4 запускаются позднее только после M2 gates.
+- **VERIFIED FACT:** Stage order: `S0 → A1 → M1 → A2 → M2 → A3 → M3 → A4 → M4 → FP8`; каждый A-stage train и M-stage merge — отдельные jobs.
+- **VERIFIED FACT:** FP8/INT4 parent запрещён; preference adapter A3 и merge M3, затем GRPO adapter A4 и merge M4 запускаются позднее только после gates предыдущего BF16 parent.
 - **EXPERIMENT REQUIRED:** Сравнить static single adapter, oracle routing, learned routing и no-adapter baseline на одинаковых tasks.
 - **EXPERIMENT REQUIRED:** Проверить router collapse, expert starvation, route instability при paraphrase и security-sensitive misrouting.
 - **ENGINEERING HYPOTHESIS:** Минимальная квота traffic и balanced sampling предотвращают starvation, но не гарантируют полезность каждого pack.
@@ -38,7 +38,7 @@
 ## Compute
 
 - **VERIFIED FACT:** Model compute выполняется только на RunPod H200; локально допустимы schemas, configs и unit tests без weights.
-- **ENGINEERING HYPOTHESIS:** Отдельные adapter experiments начинают на 8×H200; масштабирование выше допускается только после измерения memory/throughput.
+- **ENGINEERING HYPOTHESIS:** Любой experiment, который загружает или shards 480B policy, имеет minimum 16×H200 pending memory proof. 8×H200 разрешены только для отдельного малого request-router/auxiliary model без 480B shards; full-policy evaluation выполняется на отдельном minimum-16-H200 allocation.
 - **RISK:** QLoRA для sparse hybrid architecture может дать непредсказуемый quality loss и kernel gaps; это эксперимент, не default release path.
 
 ## Stop gates

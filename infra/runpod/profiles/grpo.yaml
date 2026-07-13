@@ -1,5 +1,6 @@
 schema: laetex.runpod.profile/v2
 name: grpo
+enabled: true
 phase: 4
 classification: EXPERIMENT_REQUIRED
 purpose: "Adapter-first GRPO on M3 in executable sandboxes; reward only from verified outcomes."
@@ -29,14 +30,15 @@ network:
   acceptance: "Written IB attestation, NCCL, rollout/update sync, sandbox isolation and reward replay; no eth0 fallback"
 storage:
   working_set: "RunPod Network Volume /workspace; rollout queue, immutable tasks and transient trajectories"
-  durable_registry: "External encrypted object store for M3, A4, M4, accepted trajectories and evidence"
+  durable_registry: "External encrypted object store for M3, A4, accepted trajectories and evidence"
   local_scratch: ephemeral_only
 checkpoint:
   input: "M3 BF16 master"
-  output: "A4 retained GRPO adapter; M4=A4 merged into M3 in BF16"
+  output: "A4 retained GRPO adapter only; no merged master"
   cadence: "Adapter plus optimizer/RNG/rollout cursor every 100 updates or 60 minutes"
-  retention: "M3, promoted A4 adapters, M4 BF16, reward/security and merge manifests"
+  retention: "M3 hash, promoted A4 adapters, optimizer state, reward/security and training manifests"
   optimizer_policy: "Fresh optimizer initialized from M3; no Stage 3 optimizer resume"
+  required_separate_merge_profile: merge-m4.yaml
 wall_clock:
   tag: ENGINEERING_HYPOTHESIS
   estimate: "64-H200 pilot 3-7 days; 128-H200 gated run 7-21 days, dominated by sandbox throughput"
@@ -49,7 +51,6 @@ stop_conditions:
 economic_gate: "128 H200 only after a 1000-task 64-H200 pilot beats the frozen SFT alternative per incremental verified task."
 artifacts:
   - A4-grpo-lora
-  - M4-bf16-merged
   - replayable-trajectory-corpus
   - reward-and-sandbox-security-report
 validation:
@@ -57,7 +58,7 @@ validation:
   checks:
     - "64=8*2*2*2 and 128=8*2*2*4"
     - "128 H200 exceeds standard 64-GPU Instant Cluster capacity and requires RunPod sales reservation"
-    - "A4 retained; M4 BF16 only; fresh optimizer"
+    - "A4 retained; training job emits no M4; merge-m4.yaml required"
 assumptions:
   - {tag: ENGINEERING_HYPOTHESIS, statement: "Adapter-first GRPO avoids full 480B optimizer residency."}
   - {tag: RISK, statement: "Sandbox throughput may make 128 H200 economically irrational."}

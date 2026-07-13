@@ -14,7 +14,7 @@
 
 **ENGINEERING HYPOTHESIS —** Broad CPT исключён из E-01 recipe. Узкий DAPT отключён по умолчанию; его corpus size остаётся `TBD_BY_PILOT` и может быть определён только отдельным pilot после frozen S0 baseline.
 
-**VERIFIED FACT —** Прямой foundation не является teacher для собственного post-training. Любой будущий critic — отдельный checkpoint с собственными pin, lineage и budget approval; он допускается только offline и отсутствует по умолчанию.
+**VERIFIED FACT —** Прямой foundation не является teacher для собственного post-training. [`ADR-0006`](adr/0006-direct-480b-instruct-foundation.md) фиксирует foundation; [`ADR-0005`](adr/0005-teacher-offline-only.md) остаётся только политикой возможного будущего offline critic, который отсутствует по умолчанию и требует отдельного checkpoint, pin, lineage и budget approval.
 
 **RISK —** Нельзя заявлять, что E-01 pretrained from zero, архитектурно независим от Qwen или универсально превосходит frontier-модели. Такие формулировки фактически неверны до появления независимого pretraining run и воспроизводимых сравнений.
 
@@ -54,7 +54,7 @@
 
 **VERIFIED FACT —** RunPod Instant Clusters документирует H200-кластеры на 2–8 узлов, 16–64 GPU и inter-node network до 3200 Gbps. H200 SXM имеет 141 GB HBM3e по официальной странице NVIDIA.
 
-**ENGINEERING HYPOTHESIS —** Production training topology: однородные 8×H200 HGX-узлы, NVLink/NVSwitch внутри узла, high-bandwidth RunPod network между узлами, NCCL по внутреннему interface, BF16/FP8 там, где recipe валидирован.
+**ENGINEERING HYPOTHESIS —** Production training topology: однородные 8×H200 HGX-узлы, NVLink/NVSwitch внутри узла и provider-attested inter-node fabric. InfiniBand является обязательным allocation gate, но не считается фактом до письменной provider attestation конкретного allocation и NCCL acceptance; BF16/FP8 используются только там, где recipe валидирован.
 
 **RISK —** Документация RunPod подтверждает класс GPU и network envelope, но не гарантирует конкретную доступность, InfiniBand semantics, quota, sustained throughput или цену в момент запуска.
 
@@ -74,15 +74,17 @@
 
 ### 4.1 Foundation Plane
 
-**VERIFIED FACT —** Upstream E-01: `Qwen/Qwen3-Coder-480B-A35B-Instruct@PIN_BEFORE_TRAINING`. Placeholder означает, что exact SHA ещё не верифицирован; training с mutable `main` запрещён.
+**VERIFIED FACT —** Upstream E-01: `Qwen/Qwen3-Coder-480B-A35B-Instruct@9d90cf8fca1bf7b7acca42d3fc9ae694a2194069`. Revision проверена 2026-07-13 через official Hugging Face API; API также сообщает safetensors BF16 parameter count `480154875392`, `usedStorage=960313541352`, наличие `LICENSE` и metadata `apache-2.0`.
 
 **VERIFIED FACT —** Официальные card/config фиксируют causal LM, training stage `Pretraining & Post-training`, 480B total / 35B activated, 62 layers, hidden size 6144, GQA 96Q/8KV, head dimension 128, 160 routed experts, Top-8, no shared expert (`shared_expert_intermediate_size=0`), expert intermediate size 2560, vocabulary 151 936, native context 262 144, BF16 и Apache-2.0.
 
 **VERIFIED FACT —** Этот checkpoint является единственным прямым foundation E-01 и не является teacher. ADR-0006 фиксирует выбор foundation; ADR-0005 регулирует только возможный future critic.
 
+**RISK —** Hugging Face commit SHA не является SHA-256 weight hash. Training заблокирован, пока RunPod source preflight не зафиксирует hashes всех 241 shards, config, tokenizer и chat template и не архивирует license/notices.
+
 **ENGINEERING HYPOTHESIS —** E-01 сохраняет tokenizer и sparse architecture. Internal router и experts первоначально заморожены; identity/tool и enterprise behavior вводятся LoRA, SFT, preference optimization и executable GRPO.
 
-**ENGINEERING HYPOTHESIS —** Канонический lineage: `S0` frozen BF16 → `A1` identity/tool LoRA → `M1` verified BF16 merge → `A2` Enterprise Action SFT LoRA → `M2` verified BF16 merge → `A3` preference LoRA → `M3` verified BF16 merge → `A4` executable GRPO LoRA → `M4` release BF16 merge; FP8 — только serving derivative после parity.
+**ENGINEERING HYPOTHESIS —** Канонический lineage: `S0 → A1 → M1 → A2 → M2 → A3 → M3 → A4 → M4 → FP8`; `A1..A4` — retained adapters, `M1..M4` — verified immutable BF16 merges, FP8 — только serving derivative после parity.
 
 **EXPERIMENT REQUIRED —** Каждый merge проходит weight integrity, held-out coding, tool grammar, identity, governance и safety regression относительно frozen S0; FP8 не получает release status без BF16 parity.
 
@@ -173,7 +175,7 @@ observed_delta_t = {changed_assets, test_results, side_effects,
 - dataset manifest с source, license/consent, hashes, PII status, transforms и split;
 - immutable container image digest и dependency lock;
 - training/eval config, code revision, random seeds и environment manifest;
-- upstream revision (`PIN_BEFORE_TRAINING` до верификации) и hashes всех входных model shards;
+- upstream revision `9d90cf8fca1bf7b7acca42d3fc9ae694a2194069` и RunPod-preflight SHA-256 hashes всех 241 входных model shards, config, tokenizer, chat template и архивированных license/notices;
 - checkpoints, optimizer states, adapter/router artifacts и signatures;
 - metrics, raw grader outputs, failure traces и benchmark task version;
 - model card, license/notices bundle, release decision и rollback pointer;

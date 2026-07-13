@@ -12,7 +12,8 @@
 
 ### H200 training
 
-- **[VERIFIED FACT]** Только NVIDIA H200 SXM 141 GB, homogeneous HGX nodes по 8 GPU, NVLink/NVSwitch внутри узла и InfiniBand между узлами.
+- **[VERIFIED FACT]** Только NVIDIA H200 SXM 141 GB и homogeneous HGX nodes по 8 GPU; NVLink/NVSwitch внутри узла обязателен.
+- **[EXPERIMENT REQUIRED]** Межузловой InfiniBand обязателен как allocation gate, но допускается только после письменной provider attestation конкретной fabric/topology и NCCL acceptance; неаттестованный allocation является NO-GO.
 - **[ENGINEERING HYPOTHESIS]** Baseline и 8–16K LoRA: minimum 16 / recommended 32 H200. Для 32–64K LoRA: recommended 64. Preference: 32/64. GRPO: 64/128.
 - **[RISK]** Стандартный RunPod Instant Cluster ограничен 16–64 GPU; 128 H200 для GRPO требует заранее подтверждённой capacity через RunPod sales.
 - **[ENGINEERING HYPOTHESIS]** Pinned OCI image + Megatron-Core/Megatron-LM + Transformer Engine; DeepSpeed только после phase parity.
@@ -20,7 +21,7 @@
 ### H200 inference/evaluation
 
 - **[ENGINEERING HYPOTHESIS]** BF16 480B weights занимают около 960 GB до runtime overhead. Поэтому BF16 minimum 16 / recommended 32 H200; 8 H200 физически слишком тесны для release qualification.
-- **[ENGINEERING HYPOTHESIS]** FP8 candidate: minimum 8 / recommended 16 H200 только после BF16-to-FP8 load, numerical и LÆTEX-Bench parity.
+- **[ENGINEERING HYPOTHESIS]** BF16→FP8 conversion/export и parity: minimum 16 / recommended 32 H200. Финальный FP8 serving допускает minimum 8 H200 только после conversion, memory-fit и full parity; 8 H200 не используются для conversion.
 - **[VERIFIED FACT]** Training, rollout serving и release evaluation используют раздельные allocations.
 
 ### Local control plane
@@ -32,11 +33,16 @@
 
 | ID | Родитель | Изменение | Результат |
 |---|---|---|---|
-| `U0` | upstream | Immutable BF16 foundation | Source master |
-| `M1` | `U0` | Retained `A1` identity/tool LoRA, затем BF16 merge | Stage 1 master |
-| `M2` | `M1` | Retained `A2` Enterprise Action SFT LoRA, затем BF16 merge | Stage 2 master |
-| `M3` | `M2` | Retained `A3` DPO/IPO LoRA, затем BF16 merge | Stage 3 master |
-| `M4` | `M3` | Retained `A4` GRPO LoRA, затем BF16 merge | Release BF16 master |
+| `S0` | upstream | Immutable BF16 foundation | Source master |
+| `A1` | `S0` | Identity/tool LoRA training; no merge | Retained adapter |
+| `M1` | `S0 + A1` | Separate verified BF16 merge | Stage 1 master |
+| `A2` | `M1` | Enterprise Action SFT LoRA training; no merge | Retained adapter |
+| `M2` | `M1 + A2` | Separate verified BF16 merge | Stage 2 master |
+| `A3` | `M2` | Preference LoRA training; no merge | Retained adapter |
+| `M3` | `M2 + A3` | Separate verified BF16 merge | Stage 3 master |
+| `A4` | `M3` | GRPO LoRA training; no merge | Retained adapter |
+| `M4` | `M3 + A4` | Separate verified BF16 merge/evaluation | Release BF16 master |
+| `FP8` | `M4` | Separate conversion/export and parity | Serving derivative only |
 
 - **[VERIFIED FACT]** Каждый `A1..A4`, его pre-merge parent, merge manifest и post-merge eval сохраняются.
 - **[ENGINEERING HYPOTHESIS]** Merge выполняется BF16-совместимым детерминированным job, затем load test и полный protected regression gate.
@@ -50,7 +56,7 @@
 |---|---|---|
 | `/workspace` Network Volume | active shards, adapters, rollout queues, staging checkpoints | Working set, не source of truth |
 | Node-local scratch | cache/compilation/transient artifacts | Ephemeral, checksum-bound |
-| External encrypted object store | `U0`, `A1..A4`, `M1..M4`, optimizer states, datasets, evidence | Versioned immutable registry |
+| External encrypted object store | `S0`, `A1..A4`, `M1..M4`, FP8 derivative, optimizer states, datasets, evidence | Versioned immutable registry |
 
 - **[ENGINEERING HYPOTHESIS]** Один run — один write namespace; promotion выполняет единственный registry writer после checksum и resume/load test.
 - **[RISK]** Merge без adapter retention, parent hash, tokenizer/template hash или post-merge parity считается недействительным.
@@ -58,7 +64,7 @@
 ## 5. Network acceptance
 
 - **[RISK]** Публичное «до 3200 Gbps» и наличие `ens*` не доказывают InfiniBand конкретного allocation.
-- **[VERIFIED FACT]** Перед каждым run нужны письменная provider attestation InfiniBand, topology inventory, NCCL test, no-`eth0` fallback, 141 GB HBM/rank и zero XID/ECC.
+- **[EXPERIMENT REQUIRED]** Перед каждым multi-node run нужны письменная provider attestation InfiniBand, topology inventory, NCCL test, no-`eth0` fallback, 141 GB HBM/rank и zero XID/ECC; до этого наличие подходящего allocation не считается верифицированным.
 - **[EXPERIMENT REQUIRED]** Для training дополнительно: distributed loss/gradient parity; для GRPO: rollout/update sync и sandbox containment; для release: identical bundle hashes.
 
 ## 6. Profile contract

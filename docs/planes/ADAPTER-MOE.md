@@ -2,7 +2,7 @@
 
 ## Назначение
 
-- **VERIFIED FACT:** Initial E-01 использует unified attention-only LoRA по стадиям M1 identity и M2 action SFT.
+- **VERIFIED FACT:** Initial E-01 использует unified attention-only LoRA: retained `A1` identity/tool с отдельным BF16 merge `M1`, затем retained `A2` Action SFT с отдельным BF16 merge `M2`.
 - **VERIFIED FACT:** Foundation имеет 160 внутренних experts, Top-8 и `shared_expert_intermediate_size: 0`; initial E-01 не LoRA-тюнингует все experts и не изменяет base router.
 - **EXPERIMENT REQUIRED:** Восемь dynamic domain adapters и request-level Top-2 routing отложены до ablation после M2.
 
@@ -35,9 +35,9 @@
 
 ## Staged train → verify → BF16 merge → train
 
-- **VERIFIED FACT:** `S0`: immutable BF16 upstream; `M1`: attention-only identity LoRA; verify; merge в BF16 S0; сохранить adapter и hashes.
-- **VERIFIED FACT:** `M2`: новый attention-only action-SFT adapter поверх verified BF16 M1 с fresh optimizer; verify; BF16 merge по тем же gates.
-- **EXPERIMENT REQUIRED:** M3 preference и M4 GRPO запускаются позднее и только от verified BF16 parent.
+- **VERIFIED FACT:** `S0 → A1 → M1`: train retained attention-only identity/tool LoRA `A1`, verify, затем отдельный BF16 merge `M1=S0+A1`.
+- **VERIFIED FACT:** `M1 → A2 → M2`: train retained action-SFT adapter `A2` с fresh optimizer, verify, затем отдельный BF16 merge `M2=M1+A2`.
+- **EXPERIMENT REQUIRED:** `A3 → M3 → A4 → M4` запускаются позднее и только от verified BF16 parent; FP8 создаётся отдельно от M4.
 - **VERIFIED FACT:** FP8/INT4 parent, потеря adapter delta или mutable merge recipe являются hard stop.
 
 ## Failure modes

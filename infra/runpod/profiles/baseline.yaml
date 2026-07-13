@@ -1,5 +1,6 @@
 schema: laetex.runpod.profile/v2
 name: baseline
+enabled: true
 phase: 0
 classification: EXPERIMENT_REQUIRED
 purpose: "BF16 baseline прямого 480B/35B Instruct foundation без изменения весов."
@@ -8,7 +9,7 @@ foundation:
   role: foundation_and_production_candidate
   teacher: none
   master_precision: BF16
-  parent: upstream-bf16
+  parent: S0-bf16
 platform:
   provider: RunPod
   cloud: Secure Cloud

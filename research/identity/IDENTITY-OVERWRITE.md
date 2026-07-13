@@ -15,14 +15,14 @@
 ## B. Behavioral overwrite
 
 1. **VERIFIED FACT:** `S0` — immutable upstream BF16 foundation и frozen baseline; broad CPT по умолчанию исключён, потому что foundation уже post-trained.
-2. **ENGINEERING HYPOTHESIS:** `M1` начинается с unified attention-only identity LoRA; negative examples покрывают legacy naming, fake execution, invented state, policy bypass и generic-assistant fallback.
-3. **VERIFIED FACT:** После identity/tool/coding verification M1 сливается только в BF16 parent; исходный adapter сохраняется, а parent, adapter, merged checkpoint, tokenizer и eval artifacts получают immutable hashes.
-4. **ENGINEERING HYPOTHESIS:** `M2` — action SFT поверх verified BF16 M1 с новым attention-only unified adapter и fresh optimizer; он закрепляет response/tool contract, evidence-bound completion и ask/plan/execute/escalate.
-5. **EXPERIMENT REQUIRED:** `M3` preference optimization и `M4` executable GRPO разрешены только после прохождения M2 gates; GRPO требует environment verification и side-effect penalties.
+2. **ENGINEERING HYPOTHESIS:** `A1` — unified attention-only identity LoRA; negative examples покрывают legacy naming, fake execution, invented state, policy bypass и generic-assistant fallback.
+3. **VERIFIED FACT:** После identity/tool/coding verification отдельный BF16 merge создаёт `M1=S0+A1`; исходный adapter сохраняется, а parent, adapter, merged checkpoint, tokenizer и eval artifacts получают immutable hashes.
+4. **ENGINEERING HYPOTHESIS:** `A2` — action SFT adapter поверх verified BF16 M1 с fresh optimizer; после gates отдельный merge создаёт `M2=M1+A2`.
+5. **EXPERIMENT REQUIRED:** Preference `A3 → M3` и executable GRPO `A4 → M4` разрешены только после прохождения gates предыдущего BF16 parent; GRPO требует environment verification и side-effect penalties.
 6. **VERIFIED FACT:** FP8/INT4 checkpoint не может быть parent для training или merge. Final FP8 — только отдельный inference candidate после BF16 parity.
 
 - **RISK:** Merge необратимо смешивает delta с parent; merge запрещён без сохранённого adapter, reproducible merge recipe, BF16 numerical checks и rollback lineage.
-- **EXPERIMENT REQUIRED:** Каждый переход `S0 → M1 → M2 → M3 → M4` отдельно проверяется по identity, tool correctness, coding VETCR и forgetting suite; результаты экспериментов пока не заявлены.
+- **EXPERIMENT REQUIRED:** Каждый переход `S0 → A1 → M1 → A2 → M2 → A3 → M3 → A4 → M4 → FP8` отдельно проверяется по identity, tool correctness, coding VETCR и forgetting suite; результаты экспериментов пока не заявлены.
 
 ## Tokenizer и capability preservation
 

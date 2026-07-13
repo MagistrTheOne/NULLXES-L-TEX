@@ -38,6 +38,7 @@ checkpoint:
   cadence: "No periodic checkpoint; atomic export followed by reload and parity evaluation"
   retention: "M4 BF16, FP8 export, conversion manifest, calibration lineage and all parity evidence"
   optimizer_policy: "No optimizer or scheduler; training and merge disabled"
+  serving_policy: "Conversion/export requires 16/32 H200; final serving may use 8 H200 only after exported artifact memory-fit and full BF16 parity pass"
 wall_clock:
   tag: ENGINEERING_HYPOTHESIS
   estimate: "1-3 days including conversion, reload and full parity"
@@ -56,6 +57,7 @@ validation:
   profile_only: true
   checks:
     - "16=8*2*1*1 and 32=8*2*1*2"
+    - "8 H200 is serving-only after fit/parity and is forbidden for conversion/export"
     - "Source is immutable M4 BF16"
     - "FP8 parity required; FP8 is never a training or merge parent"
 assumptions:

@@ -1,5 +1,6 @@
 schema: laetex.runpod.profile/v2
 name: enterprise-action-sft
+enabled: true
 phase: 2
 classification: ENGINEERING_HYPOTHESIS
 purpose: "Enterprise Action SFT as BF16 LoRA on M1."
@@ -31,14 +32,15 @@ network:
   acceptance: "Written IB attestation, NCCL, dataloader and distributed-loss parity; no eth0 fallback"
 storage:
   working_set: "RunPod Network Volume /workspace; verified SFT examples and adapter state"
-  durable_registry: "External encrypted object store for M1, A2, M2, data manifests and evidence"
+  durable_registry: "External encrypted object store for M1, A2, data manifests and evidence"
   local_scratch: ephemeral_only
 checkpoint:
   input: "M1 BF16 master plus frozen tokenizer/template contract"
-  output: "A2 retained Enterprise Action SFT adapter; M2=A2 merged into M1 in BF16"
+  output: "A2 retained Enterprise Action SFT adapter only; no merged master"
   cadence: "Adapter plus optimizer/RNG/data cursor every 500 steps or 2 hours"
-  retention: "M1, promoted A2 adapters, M2 BF16 and merge/eval manifests"
+  retention: "M1 hash, promoted A2 adapters, optimizer state and training/eval manifests"
   optimizer_policy: "Fresh optimizer initialized from M1; no Stage 1 optimizer resume"
+  required_separate_merge_profile: merge-m2.yaml
 wall_clock:
   tag: ENGINEERING_HYPOTHESIS
   estimate: "8-16K: 3-8 days on 16 H200 or 2-5 days on 32; 32-64K: 3-8 days on 64 after pilot"
@@ -51,13 +53,12 @@ stop_conditions:
 economic_gate: "Scale only when accepted-example rate>=90% and pilot VETCR slope is positive."
 artifacts:
   - A2-enterprise-action-sft-lora
-  - M2-bf16-merged
   - action-sft-lineage-and-evidence
 validation:
   profile_only: true
   checks:
     - "16=8*2*1*1; 32=8*2*1*2; 64=8*2*2*2"
-    - "A2 retained; M2 BF16 only; fresh optimizer"
+    - "A2 retained; training job emits no M2; merge-m2.yaml required"
     - "No raw tenant data without explicit opt-in lineage"
 assumptions:
   - {tag: ENGINEERING_HYPOTHESIS, statement: "BF16 LoRA plus protected replay can improve enterprise actions without expert tuning."}

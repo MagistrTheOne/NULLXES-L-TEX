@@ -41,7 +41,7 @@ NULLXES
 
 **EXPERIMENT REQUIRED —** Узкий domain-adaptive CPT допустим только как изолированная ablation после frozen S0 baseline и только при non-inferiority по coding, identity, tool grammar и governance.
 
-**ENGINEERING HYPOTHESIS —** Канонический lineage: frozen BF16 S0 → identity/tool LoRA → verified BF16 merge M1 → enterprise Action SFT LoRA → merge M2 → preference optimization → GRPO → BF16 master M4 → FP8 serving derivative после parity.
+**ENGINEERING HYPOTHESIS —** Канонический lineage: `S0 → A1 → M1 → A2 → M2 → A3 → M3 → A4 → M4 → FP8`; `A1..A4` — retained adapters, `M1..M4` — отдельные immutable BF16 merges, FP8 — только serving derivative после parity.
 
 **ENGINEERING HYPOTHESIS —** Internal MoE router и experts сначала заморожены. Их selective adaptation не входит в default recipe и требует отдельного доказательства adapter ceiling.
 
@@ -437,7 +437,7 @@ LÆTEX не обучается локально.
 - только NVIDIA H200;
 - production-grade H200 HGX cluster;
 - NVLink / NVSwitch внутри узла;
-- InfiniBand между узлами;
+- provider-attested InfiniBand между узлами; наличие fabric не считается фактом до письменной attestation конкретного allocation и NCCL acceptance;
 - distributed training через Megatron-LM, DeepSpeed либо эквивалентный стек;
 - isolated object storage для datasets, checkpoints и experiment artifacts;
 - tracked runs, reproducibility, dataset lineage, checkpoint registry.

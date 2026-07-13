@@ -10,18 +10,20 @@
 
 **VERIFIED FACT —** Repo ID: `Qwen/Qwen3-Coder-480B-A35B-Instruct`.
 
-**EXPERIMENT REQUIRED —** Закреплённый revision/SHA: `PIN_BEFORE_TRAINING`. Это явный gate, а не SHA: exact upstream revision ещё не верифицирован и не должен быть выдуман.
+**VERIFIED FACT —** Official Hugging Face API evidence, проверенный 2026-07-13, закрепляет revision `9d90cf8fca1bf7b7acca42d3fc9ae694a2194069` для `Qwen/Qwen3-Coder-480B-A35B-Instruct`.
 
-**RISK —** Mutable `main` запрещён как training input. До любого скачивания в training registry фиксируются exact SHA, config/card/license snapshots и hashes всех shards.
+**RISK —** Этот 40-hex commit SHA является immutable Hugging Face revision identifier, но не SHA-256 hash весов. Mutable `main` запрещён как training input.
+
+**EXPERIMENT REQUIRED —** Training остаётся заблокированным до RunPod source preflight: скачать и проверить все 241 weight shards, записать их SHA-256, захешировать config, tokenizer и chat template, а также архивировать и захешировать license/notices для exact revision.
 
 Официальные URL:
 
 - **VERIFIED FACT —** Model card: <https://huggingface.co/Qwen/Qwen3-Coder-480B-A35B-Instruct>
-- **VERIFIED FACT —** Raw model card: <https://huggingface.co/Qwen/Qwen3-Coder-480B-A35B-Instruct/raw/main/README.md>
-- **VERIFIED FACT —** Config: <https://huggingface.co/Qwen/Qwen3-Coder-480B-A35B-Instruct/blob/main/config.json>
-- **VERIFIED FACT —** Raw config: <https://huggingface.co/Qwen/Qwen3-Coder-480B-A35B-Instruct/raw/main/config.json>
+- **VERIFIED FACT —** Raw model card: <https://huggingface.co/Qwen/Qwen3-Coder-480B-A35B-Instruct/raw/9d90cf8fca1bf7b7acca42d3fc9ae694a2194069/README.md>
+- **VERIFIED FACT —** Config: <https://huggingface.co/Qwen/Qwen3-Coder-480B-A35B-Instruct/blob/9d90cf8fca1bf7b7acca42d3fc9ae694a2194069/config.json>
+- **VERIFIED FACT —** Raw config: <https://huggingface.co/Qwen/Qwen3-Coder-480B-A35B-Instruct/raw/9d90cf8fca1bf7b7acca42d3fc9ae694a2194069/config.json>
 - **VERIFIED FACT —** Repository API metadata: <https://huggingface.co/api/models/Qwen/Qwen3-Coder-480B-A35B-Instruct>
-- **VERIFIED FACT —** File tree: <https://huggingface.co/Qwen/Qwen3-Coder-480B-A35B-Instruct/tree/main>
+- **VERIFIED FACT —** File tree: <https://huggingface.co/Qwen/Qwen3-Coder-480B-A35B-Instruct/tree/9d90cf8fca1bf7b7acca42d3fc9ae694a2194069>
 
 ### Проверенные параметры foundation
 
@@ -33,11 +35,13 @@
 
 **VERIFIED FACT —** Отдельно выпущенный официальный `Qwen3-Coder-480B-A35B-Base` в проверенных official card, repository tree и поиске Hugging Face не идентифицирован. Прямой upstream E-01 поэтому является Instruct checkpoint.
 
-**RISK —** Total/activated parameter counts берутся из официального model card; config не содержит отдельного поля total parameter count. Memory plan требует shard-index audit и фактического H200 load/profile.
+**VERIFIED FACT —** Official API evidence для закреплённой revision сообщает safetensors BF16 parameter count `480154875392`, `usedStorage=960313541352`, содержит `LICENSE` в file list и metadata `apache-2.0`.
+
+**RISK —** Model card округляет total parameter count до 480B; точное API safetensors значение — `480154875392`. `usedStorage` является repository storage metadata, а не SHA-256, не доказательством полноты локальной загрузки и не заменой shard manifest. Memory plan требует shard-index audit и фактического H200 load/profile.
 
 ### Лицензионный caveat
 
-**VERIFIED FACT —** Card metadata на дату проверки указывала `license: apache-2.0` и ссылку <https://huggingface.co/Qwen/Qwen3-Coder-480B-A35B-Instruct/blob/main/LICENSE>.
+**VERIFIED FACT —** API/card metadata на дату проверки указывала `license: apache-2.0`; API file list содержал `LICENSE`, доступный по <https://huggingface.co/Qwen/Qwen3-Coder-480B-A35B-Instruct/blob/9d90cf8fca1bf7b7acca42d3fc9ae694a2194069/LICENSE>.
 
 **RISK —** Metadata `apache-2.0` не заменяет pinned license text и required notices. До скачивания весов, обучения, внутреннего распространения или выпуска derivative юридический владелец должен проверить применимость лицензии к exact revision и архивировать её вместе с notices.
 
@@ -47,7 +51,7 @@
 
 **ENGINEERING HYPOTHESIS —** Broad CPT исключён по умолчанию, потому что foundation уже post-trained: такой run может стереть instruction/tool alignment.
 
-**ENGINEERING HYPOTHESIS —** Lineage: frozen BF16 S0 → identity/tool LoRA → verified BF16 merge M1 → enterprise Action SFT LoRA → merge M2 → preference → GRPO → BF16 master M4 → FP8 serving derivative после parity.
+**ENGINEERING HYPOTHESIS —** Канонический lineage: `S0 → A1 → M1 → A2 → M2 → A3 → M3 → A4 → M4 → FP8`; train adapters сохраняются, каждый `M1..M4` создаётся отдельным BF16 merge job, FP8 — только serving derivative после parity.
 
 **ENGINEERING HYPOTHESIS —** Internal MoE router и experts заморожены на начальных стадиях. Selective adaptation требует отдельного ablation gate.
 

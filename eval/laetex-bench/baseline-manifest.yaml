@@ -12,49 +12,82 @@ foundation:
   classification: VERIFIED_FACT
   repository: Qwen/Qwen3-Coder-480B-A35B-Instruct
   revision: 9d90cf8fca1bf7b7acca42d3fc9ae694a2194069
-  checkpoint_hash: "<BASE_CHECKPOINT_MERKLE_ROOT>"
-  tokenizer_hash: "<TOKENIZER_HASH>"
+  revision_is_weight_sha256: false
+  checkpoint_hash: "sha256:PENDING_WEIGHT_MANIFEST"
+  expected_weight_shards: 241
+  weight_shard_hashes: PENDING_SOURCE_PREFLIGHT
+  config_hash: PENDING_SOURCE_PREFLIGHT
+  tokenizer_hash: PENDING_SOURCE_PREFLIGHT
+  chat_template_hash: PENDING_SOURCE_PREFLIGHT
+  license_hash: PENDING_SOURCE_PREFLIGHT
+  notices_hash: PENDING_SOURCE_PREFLIGHT
   format: BF16
   training_stage: post_trained_instruct
   broad_cpt_default: excluded
   same_model_teacher_role: excluded
+  source_preflight_status: blocked_pending_runpod_hashing
+  api_evidence:
+    checked_at: "2026-07-13"
+    safetensors_bf16_parameters: 480154875392
+    used_storage_bytes: 960313541352
+    license_file_present: true
+    license_metadata: apache-2.0
 
 lineage:
   classification: VERIFIED_FACT
+  canonical_sequence: "S0 → A1 → M1 → A2 → M2 → A3 → M3 → A4 → M4 → FP8"
   s0:
     role: immutable_upstream_bf16
     parent: null
     checkpoint_hash: "<S0_BF16_CHECKPOINT_MERKLE_ROOT>"
-    status: "<PIN_BEFORE_RUN>"
+    status: blocked_pending_source_preflight
   m1:
     role: attention_only_identity_lora_then_bf16_merge
     parent: s0
-    adapter_hash: "<M1_IDENTITY_ADAPTER_HASH>"
+    adapter_hash: "<A1_IDENTITY_ADAPTER_HASH>"
     adapter_retained: true
     merge_recipe_hash: "<M1_MERGE_RECIPE_HASH>"
     merged_bf16_checkpoint_hash: "<M1_BF16_MERGED_HASH>"
     optimizer_state: fresh
     gate_report_hash: "<M1_IDENTITY_TOOL_CODING_GATE_REPORT_HASH>"
-    status: "<PIN_BEFORE_RUN>"
+    status: not_started
   m2:
     role: attention_only_action_sft_then_bf16_merge
     parent: m1
-    adapter_hash: "<M2_ACTION_ADAPTER_HASH>"
+    adapter_hash: "<A2_ACTION_ADAPTER_HASH>"
     adapter_retained: true
     merge_recipe_hash: "<M2_MERGE_RECIPE_HASH>"
     merged_bf16_checkpoint_hash: "<M2_BF16_MERGED_HASH>"
     optimizer_state: fresh
     gate_report_hash: "<M2_IDENTITY_TOOL_CODING_GATE_REPORT_HASH>"
-    status: "<PIN_BEFORE_RUN>"
+    status: not_started
   m3:
-    role: preference_optimization_deferred
+    role: preference_A3_then_bf16_merge
     parent: m2
-    checkpoint_hash: "<M3_HASH_OR_NOT_STARTED>"
+    adapter_hash: "<A3_PREFERENCE_ADAPTER_HASH_OR_NOT_STARTED>"
+    adapter_retained: true
+    merge_recipe_hash: "<M3_MERGE_RECIPE_HASH_OR_NOT_STARTED>"
+    merged_bf16_checkpoint_hash: "<M3_BF16_MERGED_HASH_OR_NOT_STARTED>"
+    optimizer_state: fresh
+    gate_report_hash: "<M3_PREFERENCE_SAFETY_CODING_GATE_REPORT_HASH_OR_NOT_STARTED>"
     status: not_started
   m4:
-    role: executable_grpo_deferred
+    role: executable_GRPO_A4_then_bf16_merge
     parent: m3
-    checkpoint_hash: "<M4_HASH_OR_NOT_STARTED>"
+    adapter_hash: "<A4_GRPO_ADAPTER_HASH_OR_NOT_STARTED>"
+    adapter_retained: true
+    merge_recipe_hash: "<M4_MERGE_RECIPE_HASH_OR_NOT_STARTED>"
+    merged_bf16_checkpoint_hash: "<M4_BF16_MERGED_HASH_OR_NOT_STARTED>"
+    optimizer_state: fresh
+    gate_report_hash: "<M4_GRPO_RELEASE_GATE_REPORT_HASH_OR_NOT_STARTED>"
+    status: not_started
+  fp8:
+    role: serving_derivative_only
+    parent: m4
+    conversion_manifest_hash: "<FP8_CONVERSION_MANIFEST_HASH_OR_NOT_STARTED>"
+    artifact_hash: "<FP8_SERVING_DERIVATIVE_HASH_OR_NOT_STARTED>"
+    parity_report_hash: "<FP8_BF16_PARITY_REPORT_HASH_OR_NOT_STARTED>"
+    training_or_merge_parent: false
     status: not_started
 
 merge_policy:
@@ -110,13 +143,13 @@ artifact_hashes:
   checkpoint_bundle: "<CHECKPOINT_BUNDLE_HASH>"
   runtime_image: "<OCI_IMAGE_DIGEST>"
   inference_config: "<INFERENCE_CONFIG_HASH>"
-  chat_template: "<CHAT_TEMPLATE_HASH>"
+  chat_template: PENDING_SOURCE_PREFLIGHT
   tool_schemas: "<TOOL_SCHEMA_BUNDLE_HASH>"
   policy_bundle: "<POLICY_BUNDLE_HASH>"
   sandbox_images: "<SANDBOX_IMAGE_SET_HASH>"
   graders: "<GRADER_BUNDLE_HASH>"
   statistical_code: "<STATISTICAL_CODE_REVISION_HASH>"
-  lineage_bundle: "<S0_M1_M2_M3_M4_LINEAGE_BUNDLE_HASH>"
+  lineage_bundle: "<S0_A1_M1_A2_M2_A3_M3_A4_M4_FP8_LINEAGE_BUNDLE_HASH>"
   merge_verification_reports: "<MERGE_VERIFICATION_REPORT_SET_HASH>"
 
 hard_gates:
